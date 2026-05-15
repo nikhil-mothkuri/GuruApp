@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { initSentry } from './config/sentry';
+initSentry(); // must be called before createApp so Sentry instruments Express
 import { createApp } from './app';
 import { env } from './config/env';
 import { prisma } from './config/prisma';

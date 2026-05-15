@@ -1,13 +1,20 @@
-import winston from 'winston';
-import { env } from '../config/env';
+import pino from 'pino';
 
-export const logger = winston.createLogger({
-  level: env.NODE_ENV === 'production' ? 'info' : 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    env.NODE_ENV === 'production'
-      ? winston.format.json()
-      : winston.format.combine(winston.format.colorize(), winston.format.simple()),
-  ),
-  transports: [new winston.transports.Console()],
+const isDev = process.env['NODE_ENV'] !== 'production';
+
+export const logger = pino({
+  level: isDev ? 'debug' : 'info',
+  ...(isDev && {
+    transport: { target: 'pino-pretty', options: { colorize: true, ignore: 'pid,hostname' } },
+  }),
+  redact: {
+    paths: [
+      'req.headers.authorization',
+      'req.body.password',
+      'req.body.refreshToken',
+      'req.body.idToken',
+      'res.headers["set-cookie"]',
+    ],
+    censor: '[REDACTED]',
+  },
 });
