@@ -15,7 +15,7 @@ export const favoritesService = {
         },
       },
     });
-    return favorites.map((f) => f.guru);
+    return favorites.map((f: { guru: (typeof favorites)[0]['guru'] }) => f.guru);
   },
 
   async add(studentId: string, guruUserId: string) {

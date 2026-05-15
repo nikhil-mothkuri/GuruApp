@@ -27,6 +27,11 @@ jobs:
       - name: Build shared package
         run: pnpm --filter @guruapp/shared build
 
+      - name: Generate Prisma client
+        run: pnpm --filter server exec prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+
       - name: Type-check server
         run: pnpm --filter server exec tsc --noEmit
 

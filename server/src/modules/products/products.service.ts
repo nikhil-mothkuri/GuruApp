@@ -18,7 +18,7 @@ export const productsService = {
   async search(query: ProductSearchQuery) {
     const { items, total } = await productRepository.search(query);
     return {
-      data: items.map((p) => normalise(p)!),
+      data: items.map((p: Parameters<typeof normalise>[0]) => normalise(p)!),
       meta: { total, page: query.page, limit: query.limit, totalPages: Math.ceil(total / query.limit) },
     };
   },
@@ -43,7 +43,7 @@ export const productsService = {
     const skip = (page - 1) * limit;
     const { items, total } = await productRepository.findByGuruProfileId(profile.id, skip, limit);
     return {
-      data: items.map((p) => normalise(p)!),
+      data: items.map((p: Parameters<typeof normalise>[0]) => normalise(p)!),
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   },
@@ -85,7 +85,7 @@ export const productsService = {
     if (!profile) throw new AppError('Guru profile not found', 404, 'NOT_FOUND');
     const product = await productRepository.findById(productId);
     if (!product || product.guruId !== profile.id) throw new AppError('Product not found or not yours', 404, 'NOT_FOUND');
-    const image = product.images.find((i) => i.id === imageId);
+    const image = product.images.find((i: { id: string }) => i.id === imageId);
     if (!image) throw new AppError('Image not found', 404, 'NOT_FOUND');
     await productRepository.deleteImage(imageId, productId);
     await deleteFile(image.url);

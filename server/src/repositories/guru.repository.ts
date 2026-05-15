@@ -66,7 +66,7 @@ export const guruRepository = {
         orderBy: { skillName: 'asc' },
       }),
     ]);
-    return { names, skills: skills.map((s) => s.skillName) };
+    return { names, skills: skills.map((s: { skillName: string }) => s.skillName) };
   },
 
   updateRating: async (guruId: string) => {
