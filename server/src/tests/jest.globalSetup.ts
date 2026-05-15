@@ -21,7 +21,13 @@ export default async function globalSetup() {
   const serverDir = path.resolve(__dirname, '../../');
   const envTest = loadEnvFile(path.join(serverDir, '.env.test'));
 
-  const dbUrl = envTest['TEST_DATABASE_URL'] ?? envTest['DATABASE_URL'] ?? '';
+  // Prefer file values; fall back to process.env for CI where .env.test is gitignored
+  const dbUrl =
+    envTest['TEST_DATABASE_URL'] ??
+    envTest['DATABASE_URL'] ??
+    process.env['TEST_DATABASE_URL'] ??
+    process.env['DATABASE_URL'] ??
+    '';
 
   // Inject all required env vars into the current process
   process.env['NODE_ENV'] = 'test';
