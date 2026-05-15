@@ -17,6 +17,9 @@ const config: Config = {
   },
   // SQLite does not support concurrent writes — run files sequentially
   maxWorkers: 1,
+  // Remote Neon DB needs generous timeouts (vs local SQLite which is instant)
+  testTimeout: 30000,
+  hookTimeout: 30000,
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
