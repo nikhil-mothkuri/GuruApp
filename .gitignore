@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+client/dist/
+shared/dist/
+
+# Environment files — never commit secrets
+server/.env
+server/.env.test
+client/.env
+client/.env.local
+
+# SQLite databases
+server/prisma/*.db
+server/prisma/*.db-shm
+server/prisma/*.db-wal
+server/prisma/prisma/
+
+# Uploads (use cloud storage in production)
+server/uploads/
+server/uploads-test/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.suo
+*.user
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# TypeScript incremental build
+*.tsbuildinfo

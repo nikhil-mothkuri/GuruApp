@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(pnpm add *)",
+      "PowerShell(npm run *)",
+      "PowerShell(cd \"C:\\\\Users\\\\Nikhi\\\\Documents\\\\Coding\\\\GuruApp\\\\client\" ; npx tsc -b --noEmit 2>&1 ; Write-Host \"EXIT:$LASTEXITCODE\")",
+      "PowerShell(netstat *)"
+    ]
+  }
+}
