@@ -80,6 +80,7 @@ model GuruSkill {
   guruId    String
   guru      GuruProfile @relation(fields: [guruId], references: [id], onDelete: Cascade)
   skillName String
+  imageUrl  String?
 
   @@unique([guruId, skillName])
   @@index([skillName])

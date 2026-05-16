@@ -55,6 +55,7 @@ export type GuruSearchQuery = z.infer<typeof guruSearchSchema>;
 export const guruSkillSchema = z.object({
   id: z.string(),
   skillName: z.string(),
+  imageUrl: z.string().nullable(),
 });
 
 export const guruPhotoSchema = z.object({

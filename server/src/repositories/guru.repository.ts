@@ -18,7 +18,7 @@ const guruProfileSelect = {
 
 const guruInclude = {
   user: { select: { id: true, name: true, bio: true, avatarUrl: true } },
-  skills: { select: { id: true, skillName: true } },
+  skills: { select: { id: true, skillName: true, imageUrl: true } },
   photos: {
     select: { id: true, url: true, caption: true, displayOrder: true },
     orderBy: { displayOrder: 'asc' as const },
@@ -97,6 +97,9 @@ export const guruRepository = {
     prisma.guruSkill.create({ data: { guruId, skillName } }),
 
   deleteSkill: (id: string, guruId: string) => prisma.guruSkill.delete({ where: { id, guruId } }),
+
+  updateSkillImage: (skillId: string, guruId: string, imageUrl: string) =>
+    prisma.guruSkill.update({ where: { id: skillId, guruId }, data: { imageUrl } }),
 
   addPhoto: (guruId: string, url: string, caption?: string) =>
     prisma.guruPhoto.create({ data: { guruId, url, caption } }),

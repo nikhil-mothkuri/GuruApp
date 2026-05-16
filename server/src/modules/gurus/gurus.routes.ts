@@ -60,6 +60,13 @@ gurusRouter.post(
 );
 gurusRouter.delete('/me/skills/:skillId', authenticate, requireGuru(), gurusController.deleteSkill);
 gurusRouter.post(
+  '/me/skills/:skillId/image',
+  authenticate,
+  requireGuru(),
+  upload.single('image'),
+  gurusController.uploadSkillImage,
+);
+gurusRouter.post(
   '/me/photos',
   authenticate,
   requireGuru(),

@@ -417,30 +417,38 @@ export default function GuruProfile() {
               <SectionCard title="Our Services">
                 {/* Mobile: horizontal scroll */}
                 <MobileScroll>
-                  {guru.skills.map((s: { id: string; skillName: string }, i: number) => {
+                  {guru.skills.map((s: { id: string; skillName: string; imageUrl: string | null }, i: number) => {
                     const Icon = SKILL_ICONS[i % SKILL_ICONS.length];
                     const col = SKILL_COLORS[i % SKILL_COLORS.length];
                     return (
-                      <div key={s.id} className="flex-shrink-0 w-28 flex flex-col items-center gap-2 p-3 rounded-xl border border-[#e8eaed] text-center">
-                        <div className={`w-11 h-11 rounded-full flex items-center justify-center ring-4 ${col.bg} ${col.text} ${col.ring}`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs font-semibold text-[#202124] leading-tight">{s.skillName}</span>
+                      <div key={s.id} className="flex-shrink-0 w-28 flex flex-col rounded-xl border border-[#e8eaed] overflow-hidden text-center">
+                        {s.imageUrl ? (
+                          <img src={s.imageUrl} alt={s.skillName} className="w-full h-20 object-cover" loading="lazy" />
+                        ) : (
+                          <div className={`w-full h-20 flex items-center justify-center ${col.bg}`}>
+                            <Icon className={`w-8 h-8 ${col.text}`} />
+                          </div>
+                        )}
+                        <span className="text-xs font-semibold text-[#202124] leading-tight px-2 py-2">{s.skillName}</span>
                       </div>
                     );
                   })}
                 </MobileScroll>
                 {/* md+: grid */}
                 <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {guru.skills.map((s: { id: string; skillName: string }, i: number) => {
+                  {guru.skills.map((s: { id: string; skillName: string; imageUrl: string | null }, i: number) => {
                     const Icon = SKILL_ICONS[i % SKILL_ICONS.length];
                     const col = SKILL_COLORS[i % SKILL_COLORS.length];
                     return (
-                      <div key={s.id} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#e8eaed] hover:border-[#c5d8fd] hover:shadow-sm transition-all text-center">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ring-4 ${col.bg} ${col.text} ${col.ring}`}>
-                          <Icon className="w-6 h-6" />
-                        </div>
-                        <span className="text-sm font-semibold text-[#202124] leading-tight">{s.skillName}</span>
+                      <div key={s.id} className="flex flex-col rounded-xl border border-[#e8eaed] hover:border-[#c5d8fd] hover:shadow-sm transition-all overflow-hidden">
+                        {s.imageUrl ? (
+                          <img src={s.imageUrl} alt={s.skillName} className="w-full h-28 object-cover" loading="lazy" />
+                        ) : (
+                          <div className={`w-full h-28 flex items-center justify-center ${col.bg}`}>
+                            <Icon className={`w-10 h-10 ${col.text}`} />
+                          </div>
+                        )}
+                        <p className="text-sm font-semibold text-[#202124] leading-tight px-3 py-2.5">{s.skillName}</p>
                       </div>
                     );
                   })}

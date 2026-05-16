@@ -79,6 +79,18 @@ export function useDeletePhoto() {
   });
 }
 
+export function useUploadSkillImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ skillId, file }: { skillId: string; file: File }) => {
+      const fd = new FormData();
+      fd.append('image', file);
+      return api.post(`/gurus/me/skills/${skillId}/image`, fd).then((r) => r.data.data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['gurus', 'me'] }),
+  });
+}
+
 export function useUploadBanner() {
   const qc = useQueryClient();
   return useMutation({

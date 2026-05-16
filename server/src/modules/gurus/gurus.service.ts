@@ -77,6 +77,13 @@ export const gurusService = {
     await guruRepository.deleteVideo(videoId, profile.id);
   },
 
+  async uploadSkillImage(userId: string, skillId: string, buffer: Buffer, originalname: string) {
+    const profile = await guruRepository.findByUserId(userId);
+    if (!profile) throw new AppError('Guru profile not found', 404, 'NOT_FOUND');
+    const { url } = await savePhoto(buffer, originalname);
+    return guruRepository.updateSkillImage(skillId, profile.id, url);
+  },
+
   async uploadBanner(userId: string, buffer: Buffer, originalname: string) {
     const { url } = await savePhoto(buffer, originalname);
     return guruRepository.setBanner(userId, url);

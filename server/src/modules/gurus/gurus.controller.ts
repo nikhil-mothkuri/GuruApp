@@ -109,6 +109,21 @@ export const gurusController = {
     }
   },
 
+  async uploadSkillImage(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.file) return next(new Error('No file uploaded'));
+      const skill = await gurusService.uploadSkillImage(
+        req.user!.userId,
+        req.params['skillId'] as string,
+        req.file.buffer,
+        req.file.originalname,
+      );
+      res.json({ data: skill });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async uploadBanner(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       if (!req.file) return next(new Error('No file uploaded'));

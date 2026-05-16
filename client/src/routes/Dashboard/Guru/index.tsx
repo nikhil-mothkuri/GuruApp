@@ -8,6 +8,7 @@ import {
   useDeleteVideo,
   useDeletePhoto,
   useUploadBanner,
+  useUploadSkillImage,
 } from '@/hooks/useGurus';
 import { useGuruBookings } from '@/hooks/useBookings';
 import { useMySlots, useCreateSlot, useDeleteSlot } from '@/hooks/useSlots';
@@ -32,6 +33,8 @@ import {
   MessageCircle,
   Clock,
   ImageIcon,
+  Save,
+  CheckCircle,
 } from 'lucide-react';
 import type { Booking } from '@guruapp/shared';
 import type { AvailabilitySlot } from '@guruapp/shared';
@@ -92,6 +95,7 @@ export default function GuruDashboard() {
   const { data: profile, isLoading } = useMyGuruProfile();
   const deletePhoto = useDeletePhoto();
   const uploadBanner = useUploadBanner();
+  const uploadSkillImage = useUploadSkillImage();
   const { data: bookings } = useGuruBookings();
   const { data: slots } = useMySlots();
   const updateProfile = useUpdateGuruProfile();
@@ -103,42 +107,44 @@ export default function GuruDashboard() {
   const deleteSlot = useDeleteSlot();
 
   const [tab, setTab] = useState<'profile' | 'availability' | 'bookings'>('profile');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // All editable profile fields — initialised from profile on load
   const [tagline, setTagline] = useState('');
-  const [newSkill, setNewSkill] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [videoTitle, setVideoTitle] = useState('');
-  const [photoError, setPhotoError] = useState('');
-
-  // About
   const [about, setAbout] = useState('');
-
-  // Contact info
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [alternatePhone, setAlternatePhone] = useState('');
   const [address, setAddress] = useState('');
-
-  // Social / links
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
 
-  // Business hours — default all days 08:00–20:00, open
   const DEFAULT_HOURS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => ({
-    day,
-    open: '08:00',
-    close: '20:00',
-    closed: false,
+    day, open: '08:00', close: '20:00', closed: false,
   }));
   const [businessHours, setBusinessHours] = useState(DEFAULT_HOURS);
+
+  // Sync all fields when profile loads
   useEffect(() => {
-    if (profile?.businessHours) {
-      try {
-        setBusinessHours(JSON.parse(profile.businessHours));
-      } catch {
-        // keep defaults
-      }
+    if (!profile) return;
+    setTagline(profile.tagline ?? '');
+    setAbout(profile.about ?? '');
+    setContactEmail(profile.contactEmail ?? '');
+    setContactPhone(profile.contactPhone ?? '');
+    setAlternatePhone(profile.alternatePhone ?? '');
+    setAddress(profile.address ?? '');
+    setWebsiteUrl(profile.websiteUrl ?? '');
+    setWhatsappNumber(profile.whatsappNumber ?? '');
+    if (profile.businessHours) {
+      try { setBusinessHours(JSON.parse(profile.businessHours)); } catch { /* keep defaults */ }
     }
-  }, [profile?.businessHours]);
+  }, [profile]);
+
+  // Per-item form state (not part of single-save)
+  const [newSkill, setNewSkill] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoTitle, setVideoTitle] = useState('');
+  const [photoError, setPhotoError] = useState('');
   // Slot form state
   const [showSlotForm, setShowSlotForm] = useState(false);
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
@@ -163,54 +169,36 @@ export default function GuruDashboard() {
   const activeSlots = (slots as AvailabilitySlot[] | undefined)?.length ?? 0;
   const initial = user?.name?.[0]?.toUpperCase() ?? '?';
 
-  const handleUpdateTagline = (e: React.FormEvent) => {
+  const handleSaveAll = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile.mutate({ tagline });
+    await updateProfile.mutateAsync({
+      tagline,
+      about,
+      contactEmail,
+      contactPhone,
+      alternatePhone,
+      address,
+      websiteUrl,
+      whatsappNumber,
+      businessHours: JSON.stringify(businessHours),
+    });
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
-  const handleAddSkill = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddSkill = () => {
     if (newSkill.trim()) {
       addSkill.mutate({ skillName: newSkill.trim() });
       setNewSkill('');
     }
   };
 
-  const handleAddVideo = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddVideo = () => {
     if (videoUrl && videoTitle) {
       addVideo.mutate({ youtubeUrl: videoUrl, title: videoTitle });
       setVideoUrl('');
       setVideoTitle('');
     }
-  };
-
-  const handleSaveAbout = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfile.mutate({ about: about || profile?.about || '' });
-  };
-
-  const handleSaveContact = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfile.mutate({
-      contactEmail: contactEmail || profile?.contactEmail || '',
-      contactPhone: contactPhone || profile?.contactPhone || '',
-      alternatePhone: alternatePhone || profile?.alternatePhone || '',
-      address: address || profile?.address || '',
-    });
-  };
-
-  const handleSaveSocial = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfile.mutate({
-      websiteUrl: websiteUrl || profile?.websiteUrl || '',
-      whatsappNumber: whatsappNumber || profile?.whatsappNumber || '',
-    });
-  };
-
-  const handleSaveBusinessHours = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfile.mutate({ businessHours: JSON.stringify(businessHours) });
   };
 
   const toggleDay = (i: number) =>
@@ -473,142 +461,28 @@ export default function GuruDashboard() {
         <div className="bg-white rounded-b-xl border border-t border-t-[#e8eaed] border-[#e0e0e0] p-5">
           {/* Profile tab */}
           {tab === 'profile' && (
-            <div className="space-y-5">
+            <form onSubmit={handleSaveAll} className="space-y-5">
+              {/* Tagline */}
               <section className="border border-[#e8eaed] rounded-xl p-5 hover:border-[#dadce0] transition-colors">
-                <h2 className="text-sm font-semibold text-[#202124] mb-3">
-                  {t('guru.profile.tagline')}
-                </h2>
-                <form onSubmit={handleUpdateTagline} className="flex gap-2">
-                  <input
-                    value={tagline || profile?.tagline || ''}
-                    onChange={(e) => setTagline(e.target.value)}
-                    placeholder={t('guru.profile.taglinePlaceholder')}
-                    className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
-                  />
-                  <button
-                    type="submit"
-                    disabled={updateProfile.isPending}
-                    className="px-5 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-full hover:bg-[#1557b0] disabled:opacity-60 transition-colors shadow-sm"
-                  >
-                    {t('guru.profile.save')}
-                  </button>
-                </form>
-              </section>
-
-              <section className="border border-[#e8eaed] rounded-xl p-5 hover:border-[#dadce0] transition-colors">
-                <h2 className="text-sm font-semibold text-[#202124] mb-1">Services</h2>
-                <p className="text-xs text-[#5f6368] mb-3">These appear as service cards on your public profile.</p>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {profile?.skills?.map((s: { id: string; skillName: string }) => (
-                    <span
-                      key={s.id}
-                      className="flex items-center gap-1 bg-[#e8f0fe] text-[#1a73e8] px-3 py-1 rounded-full text-xs font-medium"
-                    >
-                      {s.skillName}
-                      <button
-                        onClick={() => deleteSkill.mutate(s.id)}
-                        className="ml-1 hover:text-[#d93025] transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                  {!profile?.skills?.length && (
-                    <p className="text-xs text-[#9aa0a6]">No services added yet.</p>
-                  )}
-                </div>
-                <form onSubmit={handleAddSkill} className="flex gap-2">
-                  <input
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    placeholder="e.g. Ayurvedic Consultation, Yoga, Panchakarma…"
-                    className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
-                  />
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1 px-4 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-full hover:bg-[#1557b0] transition-colors shadow-sm"
-                  >
-                    <Plus className="w-4 h-4" /> Add
-                  </button>
-                </form>
-              </section>
-
-              <section className="border border-[#e8eaed] rounded-xl p-5 hover:border-[#dadce0] transition-colors">
-                <h2 className="text-sm font-semibold text-[#202124] mb-3">
-                  {t('guru.profile.videos')}
-                </h2>
-                <div className="space-y-2 mb-4">
-                  {profile?.videos?.map((v: { id: string; youtubeUrl: string; title: string }) => (
-                    <div
-                      key={v.id}
-                      className="flex items-center justify-between p-3 bg-[#f8f9fa] rounded-lg border border-[#e8eaed]"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Video className="w-4 h-4 text-[#ea4335] flex-shrink-0" />
-                        <a
-                          href={v.youtubeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-[#1a73e8] hover:underline truncate"
-                        >
-                          {v.title}
-                        </a>
-                      </div>
-                      <button
-                        onClick={() => deleteVideo.mutate(v.id)}
-                        className="text-[#5f6368] hover:text-[#d93025] transition-colors ml-2 flex-shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  {!profile?.videos?.length && (
-                    <p className="text-xs text-[#9aa0a6]">{t('guru.profile.noVideos')}</p>
-                  )}
-                </div>
-                <form onSubmit={handleAddVideo} className="space-y-2">
-                  <input
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                    placeholder={t('guru.profile.videoUrlPlaceholder')}
-                    className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
-                  />
-                  <input
-                    value={videoTitle}
-                    onChange={(e) => setVideoTitle(e.target.value)}
-                    placeholder={t('guru.profile.videoTitlePlaceholder')}
-                    className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
-                  />
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1 px-4 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-full hover:bg-[#1557b0] transition-colors shadow-sm"
-                  >
-                    <Plus className="w-4 h-4" /> {t('guru.profile.addVideo')}
-                  </button>
-                </form>
+                <h2 className="text-sm font-semibold text-[#202124] mb-3">{t('guru.profile.tagline')}</h2>
+                <input
+                  value={tagline}
+                  onChange={(e) => setTagline(e.target.value)}
+                  placeholder={t('guru.profile.taglinePlaceholder')}
+                  className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
+                />
               </section>
 
               {/* About / Bio */}
               <section className="border border-[#e8eaed] rounded-xl p-5 hover:border-[#dadce0] transition-colors">
                 <h2 className="text-sm font-semibold text-[#202124] mb-3">About / Bio</h2>
-                <form onSubmit={handleSaveAbout} className="space-y-2">
-                  <textarea
-                    value={about || profile?.about || ''}
-                    onChange={(e) => setAbout(e.target.value)}
-                    placeholder="Describe your background, expertise, founding story…"
-                    rows={4}
-                    className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors resize-none"
-                  />
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={updateProfile.isPending}
-                      className="px-5 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-full hover:bg-[#1557b0] disabled:opacity-60 transition-colors shadow-sm"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </form>
+                <textarea
+                  value={about}
+                  onChange={(e) => setAbout(e.target.value)}
+                  placeholder="Describe your background, expertise, founding story…"
+                  rows={4}
+                  className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors resize-none"
+                />
               </section>
 
               {/* Contact Info */}
@@ -616,95 +490,53 @@ export default function GuruDashboard() {
                 <h2 className="text-sm font-semibold text-[#202124] mb-3 flex items-center gap-2">
                   <Phone className="w-4 h-4 text-[#1a73e8]" /> Contact Information
                 </h2>
-                <form onSubmit={handleSaveContact} className="space-y-2">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-[#5f6368] flex-shrink-0" />
-                    <input
-                      type="email"
-                      value={contactEmail || profile?.contactEmail || ''}
-                      onChange={(e) => setContactEmail(e.target.value)}
+                    <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
                       placeholder="Contact email"
-                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
-                    />
+                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors" />
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-[#5f6368] flex-shrink-0" />
-                    <input
-                      type="tel"
-                      value={contactPhone || profile?.contactPhone || ''}
-                      onChange={(e) => setContactPhone(e.target.value)}
+                    <input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
                       placeholder="Primary phone (e.g. +91 9394804640)"
-                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
-                    />
+                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors" />
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-[#9aa0a6] flex-shrink-0" />
-                    <input
-                      type="tel"
-                      value={alternatePhone || profile?.alternatePhone || ''}
-                      onChange={(e) => setAlternatePhone(e.target.value)}
+                    <input type="tel" value={alternatePhone} onChange={(e) => setAlternatePhone(e.target.value)}
                       placeholder="Alternate phone (optional)"
-                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
-                    />
+                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors" />
                   </div>
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 text-[#5f6368] flex-shrink-0 mt-2" />
-                    <textarea
-                      value={address || profile?.address || ''}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Address (e.g. Flat 102, GRB Avenue, Hyderabad, Telangana 500072)"
-                      rows={2}
-                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors resize-none"
-                    />
+                    <textarea value={address} onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Address" rows={2}
+                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors resize-none" />
                   </div>
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={updateProfile.isPending}
-                      className="px-5 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-full hover:bg-[#1557b0] disabled:opacity-60 transition-colors shadow-sm"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </form>
+                </div>
               </section>
 
-              {/* Social & Website Links */}
+              {/* Website & Social */}
               <section className="border border-[#e8eaed] rounded-xl p-5 hover:border-[#dadce0] transition-colors">
                 <h2 className="text-sm font-semibold text-[#202124] mb-3 flex items-center gap-2">
                   <Globe className="w-4 h-4 text-[#1a73e8]" /> Website & Social
                 </h2>
-                <form onSubmit={handleSaveSocial} className="space-y-2">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-[#5f6368] flex-shrink-0" />
-                    <input
-                      type="url"
-                      value={websiteUrl || profile?.websiteUrl || ''}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
-                      placeholder="Website URL (e.g. https://yourwebsite.com)"
-                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
-                    />
+                    <input type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)}
+                      placeholder="https://yourwebsite.com"
+                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors" />
                   </div>
                   <div className="flex items-center gap-2">
                     <MessageCircle className="w-4 h-4 text-[#25d366] flex-shrink-0" />
-                    <input
-                      type="tel"
-                      value={whatsappNumber || profile?.whatsappNumber || ''}
-                      onChange={(e) => setWhatsappNumber(e.target.value)}
+                    <input type="tel" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)}
                       placeholder="WhatsApp number (e.g. +91 9394804640)"
-                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors"
-                    />
+                      className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors" />
                   </div>
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={updateProfile.isPending}
-                      className="px-5 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-full hover:bg-[#1557b0] disabled:opacity-60 transition-colors shadow-sm"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </form>
+                </div>
               </section>
 
               {/* Business Hours */}
@@ -712,131 +544,180 @@ export default function GuruDashboard() {
                 <h2 className="text-sm font-semibold text-[#202124] mb-3 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[#1a73e8]" /> Business Hours
                 </h2>
-                <form onSubmit={handleSaveBusinessHours}>
-                  <div className="space-y-2 mb-3">
-                    {businessHours.map((row, i) => (
-                      <div key={row.day} className="flex items-center gap-3">
-                        <span className="w-8 text-xs font-semibold text-[#5f6368]">{row.day}</span>
-                        <label className="flex items-center gap-1.5 text-xs text-[#5f6368] cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={!row.closed}
-                            onChange={(e) => {
-                              const next = [...businessHours];
-                              next[i] = { ...next[i], closed: !e.target.checked };
-                              setBusinessHours(next);
-                            }}
-                            className="rounded"
-                          />
-                          Open
-                        </label>
-                        {!row.closed && (
-                          <>
-                            <input
-                              type="time"
-                              value={row.open}
+                <div className="space-y-2">
+                  {businessHours.map((row, i) => (
+                    <div key={row.day} className="flex items-center gap-3">
+                      <span className="w-8 text-xs font-semibold text-[#5f6368]">{row.day}</span>
+                      <label className="flex items-center gap-1.5 text-xs text-[#5f6368] cursor-pointer select-none">
+                        <input type="checkbox" checked={!row.closed}
+                          onChange={(e) => { const n = [...businessHours]; n[i] = { ...n[i], closed: !e.target.checked }; setBusinessHours(n); }}
+                          className="rounded" />
+                        Open
+                      </label>
+                      {!row.closed ? (
+                        <>
+                          <input type="time" value={row.open}
+                            onChange={(e) => { const n = [...businessHours]; n[i] = { ...n[i], open: e.target.value }; setBusinessHours(n); }}
+                            className="border border-[#dadce0] rounded px-2 py-1 text-xs outline-none focus:border-[#1a73e8]" />
+                          <span className="text-xs text-[#9aa0a6]">to</span>
+                          <input type="time" value={row.close}
+                            onChange={(e) => { const n = [...businessHours]; n[i] = { ...n[i], close: e.target.value }; setBusinessHours(n); }}
+                            className="border border-[#dadce0] rounded px-2 py-1 text-xs outline-none focus:border-[#1a73e8]" />
+                        </>
+                      ) : (
+                        <span className="text-xs text-[#9aa0a6] italic">Closed</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Services — with image upload per card */}
+              <section className="border border-[#e8eaed] rounded-xl p-5 hover:border-[#dadce0] transition-colors">
+                <h2 className="text-sm font-semibold text-[#202124] mb-1">Services</h2>
+                <p className="text-xs text-[#5f6368] mb-3">These appear as service cards on your public profile. Add an image to each service.</p>
+                {profile?.skills?.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                    {profile.skills.map((s: { id: string; skillName: string; imageUrl: string | null }) => (
+                      <div key={s.id} className="relative border border-[#e8eaed] rounded-xl overflow-hidden group">
+                        {/* Service image or placeholder */}
+                        <div className="aspect-square bg-[#f8f9fa] relative">
+                          {s.imageUrl ? (
+                            <img src={s.imageUrl} alt={s.skillName} className="w-full h-full object-cover" loading="lazy" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[#dadce0]">
+                              <ImageIcon className="w-8 h-8" />
+                            </div>
+                          )}
+                          {/* Camera overlay to upload image */}
+                          <label
+                            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            title="Upload service image"
+                          >
+                            <Camera className="w-6 h-6 text-white" />
+                            <input type="file" accept="image/*" className="hidden"
                               onChange={(e) => {
-                                const next = [...businessHours];
-                                next[i] = { ...next[i], open: e.target.value };
-                                setBusinessHours(next);
-                              }}
-                              className="border border-[#dadce0] rounded px-2 py-1 text-xs outline-none focus:border-[#1a73e8]"
-                            />
-                            <span className="text-xs text-[#9aa0a6]">to</span>
-                            <input
-                              type="time"
-                              value={row.close}
-                              onChange={(e) => {
-                                const next = [...businessHours];
-                                next[i] = { ...next[i], close: e.target.value };
-                                setBusinessHours(next);
-                              }}
-                              className="border border-[#dadce0] rounded px-2 py-1 text-xs outline-none focus:border-[#1a73e8]"
-                            />
-                          </>
-                        )}
-                        {row.closed && (
-                          <span className="text-xs text-[#9aa0a6] italic">Closed</span>
-                        )}
+                                const file = e.target.files?.[0];
+                                if (file) uploadSkillImage.mutate({ skillId: s.id, file });
+                                e.target.value = '';
+                              }} />
+                          </label>
+                        </div>
+                        {/* Name + delete */}
+                        <div className="px-2 py-2 flex items-center justify-between gap-1">
+                          <span className="text-xs font-medium text-[#202124] truncate">{s.skillName}</span>
+                          <button type="button" onClick={() => deleteSkill.mutate(s.id)}
+                            className="flex-shrink-0 text-[#9aa0a6] hover:text-[#d93025] transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={updateProfile.isPending}
-                      className="px-5 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-full hover:bg-[#1557b0] disabled:opacity-60 transition-colors shadow-sm"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </form>
+                )}
+                {!profile?.skills?.length && (
+                  <p className="text-xs text-[#9aa0a6] mb-3">No services added yet.</p>
+                )}
+                <div className="flex gap-2">
+                  <input value={newSkill} onChange={(e) => setNewSkill(e.target.value)}
+                    placeholder="e.g. Ayurvedic Consultation, Yoga…"
+                    className="flex-1 border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors" />
+                  <button type="button" onClick={handleAddSkill}
+                    className="flex items-center gap-1 px-4 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-full hover:bg-[#1557b0] transition-colors shadow-sm">
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
               </section>
 
+              {/* Videos */}
               <section className="border border-[#e8eaed] rounded-xl p-5 hover:border-[#dadce0] transition-colors">
-                <h2 className="text-sm font-semibold text-[#202124] mb-3">
-                  {t('guru.profile.photos')}
-                </h2>
+                <h2 className="text-sm font-semibold text-[#202124] mb-3">{t('guru.profile.videos')}</h2>
+                <div className="space-y-2 mb-4">
+                  {profile?.videos?.map((v: { id: string; youtubeUrl: string; title: string }) => (
+                    <div key={v.id} className="flex items-center justify-between p-3 bg-[#f8f9fa] rounded-lg border border-[#e8eaed]">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Video className="w-4 h-4 text-[#ea4335] flex-shrink-0" />
+                        <a href={v.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-[#1a73e8] hover:underline truncate">{v.title}</a>
+                      </div>
+                      <button type="button" onClick={() => deleteVideo.mutate(v.id)} className="text-[#5f6368] hover:text-[#d93025] transition-colors ml-2 flex-shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {!profile?.videos?.length && <p className="text-xs text-[#9aa0a6]">{t('guru.profile.noVideos')}</p>}
+                </div>
+                <div className="space-y-2">
+                  <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)}
+                    placeholder={t('guru.profile.videoUrlPlaceholder')}
+                    className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors" />
+                  <input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)}
+                    placeholder={t('guru.profile.videoTitlePlaceholder')}
+                    className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm text-[#202124] placeholder-[#9aa0a6] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] transition-colors" />
+                  <button type="button" onClick={handleAddVideo}
+                    className="flex items-center gap-1 px-4 py-2 bg-[#1a73e8] text-white text-sm font-medium rounded-full hover:bg-[#1557b0] transition-colors shadow-sm">
+                    <Plus className="w-4 h-4" /> {t('guru.profile.addVideo')}
+                  </button>
+                </div>
+              </section>
+
+              {/* Photos */}
+              <section className="border border-[#e8eaed] rounded-xl p-5 hover:border-[#dadce0] transition-colors">
+                <h2 className="text-sm font-semibold text-[#202124] mb-3">{t('guru.profile.photos')}</h2>
                 {profile?.photos?.length > 0 && (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
                     {profile.photos.map((p: { id: string; url: string }) => (
                       <div key={p.id} className="relative group">
-                        <img
-                          src={p.url}
-                          alt=""
-                          className="w-full aspect-square object-cover rounded-lg"
-                          loading="lazy"
-                        />
-                        <button
-                          onClick={() => deletePhoto.mutate(p.id)}
-                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#d93025]"
-                          title="Delete photo"
-                        >
+                        <img src={p.url} alt="" className="w-full aspect-square object-cover rounded-lg" loading="lazy" />
+                        <button type="button" onClick={() => deletePhoto.mutate(p.id)}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#d93025]" title="Delete photo">
                           <X className="w-3.5 h-3.5 text-white" />
                         </button>
                       </div>
                     ))}
                   </div>
                 )}
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    setPhotoError('');
-                    const input = (e.target as HTMLFormElement).querySelector(
-                      'input[type=file]',
-                    ) as HTMLInputElement;
-                    if (!input.files?.[0]) return;
-                    const fd = new FormData();
-                    fd.append('photo', input.files[0]);
-                    try {
-                      await api.post('/gurus/me/photos', fd);
-                      input.value = '';
-                      queryClient.invalidateQueries({ queryKey: ['gurus', 'me'] });
-                    } catch (err: unknown) {
-                      const msg =
-                        (err as { response?: { data?: { error?: { message?: string } } } })
-                          ?.response?.data?.error?.message ?? 'Upload failed';
-                      setPhotoError(msg);
-                    }
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="text-sm text-[#5f6368] file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border file:border-[#dadce0] file:text-sm file:font-medium file:text-[#1a73e8] file:bg-white hover:file:bg-[#e8f0fe] file:transition-colors"
-                    />
-                    <button
-                      type="submit"
-                      className="flex items-center gap-1 px-4 py-1.5 text-sm text-[#1a73e8] border border-[#dadce0] rounded-full hover:bg-[#e8f0fe] transition-colors font-medium"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> {t('guru.profile.upload')}
-                    </button>
-                  </div>
-                  {photoError && <p className="text-xs text-[#d93025] mt-2">{photoError}</p>}
-                </form>
+                <div className="flex items-center gap-3">
+                  <input type="file" accept="image/*" id="photo-upload"
+                    className="text-sm text-[#5f6368] file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border file:border-[#dadce0] file:text-sm file:font-medium file:text-[#1a73e8] file:bg-white hover:file:bg-[#e8f0fe] file:transition-colors"
+                    onChange={async (e) => {
+                      setPhotoError('');
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const fd = new FormData();
+                      fd.append('photo', file);
+                      try {
+                        await api.post('/gurus/me/photos', fd);
+                        e.target.value = '';
+                        queryClient.invalidateQueries({ queryKey: ['gurus', 'me'] });
+                      } catch (err: unknown) {
+                        setPhotoError((err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ?? 'Upload failed');
+                      }
+                    }} />
+                </div>
+                {photoError && <p className="text-xs text-[#d93025] mt-2">{photoError}</p>}
               </section>
-            </div>
+
+              {/* ── Single Save Button ── */}
+              <div className="sticky bottom-4 flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={updateProfile.isPending}
+                  className={`flex items-center gap-2 px-8 py-3 rounded-full text-sm font-semibold shadow-lg transition-all ${
+                    saveSuccess
+                      ? 'bg-[#1e8e3e] text-white'
+                      : 'bg-[#1a73e8] text-white hover:bg-[#1557b0] disabled:opacity-60'
+                  }`}
+                >
+                  {saveSuccess ? (
+                    <><CheckCircle className="w-4 h-4" /> Saved!</>
+                  ) : updateProfile.isPending ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
+                  ) : (
+                    <><Save className="w-4 h-4" /> Save Profile</>
+                  )}
+                </button>
+              </div>
+            </form>
           )}
 
           {/* Availability tab */}
