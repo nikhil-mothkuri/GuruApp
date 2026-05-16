@@ -920,11 +920,9 @@ export default function GuruDashboard() {
                                   </div>
                                   <div>
                                     <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">End time</label>
-                                    <select value={editEnd}
+                                    <input type="time" value={editEnd}
                                       onChange={(e) => { const d = computeDurationMins(editStart, e.target.value); if (d > 0) { setEditEnd(e.target.value); setEditDuration(d); } }}
-                                      className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
-                                      {TIME_OPTIONS.filter((o) => o.value > editStart).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                    </select>
+                                      className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8]" />
                                   </div>
                                 </div>
 
@@ -1028,11 +1026,9 @@ export default function GuruDashboard() {
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">End time</label>
-                          <select value={slotEnd}
+                          <input type="time" value={slotEnd}
                             onChange={(e) => { const d = computeDurationMins(slotStart, e.target.value); if (d > 0) { setSlotEnd(e.target.value); setSlotDuration(d); } }}
-                            className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
-                            {TIME_OPTIONS.filter((o) => o.value > slotStart).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
+                            className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8]" />
                         </div>
                       </div>
 
