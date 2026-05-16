@@ -35,7 +35,10 @@ describe('PATCH /api/users/me', () => {
     const user = await createTestUser();
     const token = makeAccessToken(user.id, user.email);
 
-    const res = await app.patch('/api/users/me').set(authHeader(token)).send({ name: 'Updated Name', bio: 'My bio' });
+    const res = await app
+      .patch('/api/users/me')
+      .set(authHeader(token))
+      .send({ name: 'Updated Name', bio: 'My bio' });
     expect(res.status).toBe(200);
     expect(res.body.data.name).toBe('Updated Name');
     expect(res.body.data.bio).toBe('My bio');

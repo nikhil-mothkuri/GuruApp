@@ -6,7 +6,11 @@ import { AppError } from '../../utils/appError';
 
 function parseTags(tagsJson: string | null): string[] {
   if (!tagsJson) return [];
-  try { return JSON.parse(tagsJson); } catch { return []; }
+  try {
+    return JSON.parse(tagsJson);
+  } catch {
+    return [];
+  }
 }
 
 function normalise(p: Awaited<ReturnType<typeof productRepository.findById>>) {
@@ -19,7 +23,12 @@ export const productsService = {
     const { items, total } = await productRepository.search(query);
     return {
       data: items.map((p: Parameters<typeof normalise>[0]) => normalise(p)!),
-      meta: { total, page: query.page, limit: query.limit, totalPages: Math.ceil(total / query.limit) },
+      meta: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      },
     };
   },
 
@@ -70,11 +79,18 @@ export const productsService = {
     if (!result) throw new AppError('Product not found or not yours', 404, 'NOT_FOUND');
   },
 
-  async addImage(userId: string, productId: string, buffer: Buffer, originalname: string, altText?: string) {
+  async addImage(
+    userId: string,
+    productId: string,
+    buffer: Buffer,
+    originalname: string,
+    altText?: string,
+  ) {
     const profile = await guruRepository.findByUserId(userId);
     if (!profile) throw new AppError('Guru profile not found', 404, 'NOT_FOUND');
     const product = await productRepository.findById(productId);
-    if (!product || product.guruId !== profile.id) throw new AppError('Product not found or not yours', 404, 'NOT_FOUND');
+    if (!product || product.guruId !== profile.id)
+      throw new AppError('Product not found or not yours', 404, 'NOT_FOUND');
     const { url } = await savePhoto(buffer, originalname);
     const displayOrder = product.images.length;
     return productRepository.addImage(productId, url, altText, displayOrder);
@@ -84,7 +100,8 @@ export const productsService = {
     const profile = await guruRepository.findByUserId(userId);
     if (!profile) throw new AppError('Guru profile not found', 404, 'NOT_FOUND');
     const product = await productRepository.findById(productId);
-    if (!product || product.guruId !== profile.id) throw new AppError('Product not found or not yours', 404, 'NOT_FOUND');
+    if (!product || product.guruId !== profile.id)
+      throw new AppError('Product not found or not yours', 404, 'NOT_FOUND');
     const image = product.images.find((i: { id: string }) => i.id === imageId);
     if (!image) throw new AppError('Image not found', 404, 'NOT_FOUND');
     await productRepository.deleteImage(imageId, productId);

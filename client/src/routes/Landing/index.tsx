@@ -3,14 +3,14 @@ import { Search, Tag } from 'lucide-react';
 import { useGuruSearch, useGuruSuggestions } from '@/hooks/useGurus';
 import { useDebounce } from '@/hooks/useDebounce';
 import { GuruCard, type GuruCardData } from '@/components/guru/GuruCard';
-import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
-import { FeatureCard } from '@/components/ui/FeatureCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { useTranslation } from 'react-i18next';
 
 type ActiveField = 'q' | 'skill' | null;
 
 export default function Landing() {
+  const { t } = useTranslation();
 
   const [q, setQ] = useState('');
   const [skill, setSkill] = useState('');
@@ -25,30 +25,37 @@ export default function Landing() {
 
   const hasSearch = !!(submitted.q || submitted.skill);
 
-  // Debounce the active input so we don't query on every keystroke
   const debouncedQ = useDebounce(q, 250);
   const debouncedSkill = useDebounce(skill, 250);
-  const suggestionQuery = activeField === 'q' ? debouncedQ : activeField === 'skill' ? debouncedSkill : '';
+  const suggestionQuery =
+    activeField === 'q' ? debouncedQ : activeField === 'skill' ? debouncedSkill : '';
 
   const { data: suggestions } = useGuruSuggestions(suggestionQuery);
 
-  // Build the flat suggestion list based on which field is active
-  const items: Array<{ type: 'name'; id: string; label: string; avatarUrl: string | null } | { type: 'skill'; label: string }> =
+  const items: Array<
+    | { type: 'name'; id: string; label: string; avatarUrl: string | null }
+    | { type: 'skill'; label: string }
+  > =
     activeField === 'q'
-      ? (suggestions?.names ?? []).map((n) => ({ type: 'name', id: n.id, label: n.user.name, avatarUrl: n.user.avatarUrl }))
+      ? (suggestions?.names ?? []).map((n) => ({
+          type: 'name',
+          id: n.id,
+          label: n.user.name,
+          avatarUrl: n.user.avatarUrl,
+        }))
       : (suggestions?.skills ?? []).map((s) => ({ type: 'skill', label: s }));
 
   const showDropdown = activeField !== null && suggestionQuery.length >= 1 && items.length > 0;
 
-  // Reset highlight when items change
-  useEffect(() => { setHighlightedIdx(-1); }, [items.length, activeField]);
+  useEffect(() => {
+    setHighlightedIdx(-1);
+  }, [items.length, activeField]);
 
   const closeDropdown = useCallback(() => {
     setActiveField(null);
     setHighlightedIdx(-1);
   }, []);
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -65,7 +72,6 @@ export default function Landing() {
   };
 
   const handleBlur = () => {
-    // Delay so that clicking a suggestion fires before the dropdown closes
     blurTimerRef.current = setTimeout(closeDropdown, 150);
   };
 
@@ -109,20 +115,19 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-white">
-
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center px-4 pt-20 pb-10">
-        <div className="w-full max-w-3xl text-center">
-          <Logo />
-          <p className="text-[#475569] text-base sm:text-lg mt-4 max-w-2xl mx-auto">
-            A modern platform for every Indian to learn skills, sell services, and grow a digital business.
+      <section className="flex flex-col items-center justify-center px-4 pt-12 pb-10">
+        <div className="w-full max-w-2xl text-center">
+          <h1 className="text-4xl sm:text-5xl font-semibold text-[#111827] leading-tight">
+            {t('landing.hero.title')}
+          </h1>
+          <p className="text-[#475569] text-base sm:text-lg mt-4 max-w-xl mx-auto">
+            {t('landing.hero.subtitle')}
           </p>
         </div>
 
-        {/* Search container — relative so the dropdown can be absolute below it */}
-        <div ref={containerRef} className="w-full max-w-xl relative mt-10">
+        <div ref={containerRef} className="w-full max-w-xl relative mt-8">
           <form onSubmit={handleSearch}>
-            {/* Search bar pill */}
             <div
               className={`brand-card flex items-center gap-3 bg-white px-5 py-3 transition-shadow ${
                 showDropdown
@@ -131,38 +136,38 @@ export default function Landing() {
               }`}
             >
               <Search className="w-5 h-5 text-[#9aa0a6] flex-shrink-0" />
-
-              {/* Name input */}
               <input
                 ref={qInputRef}
                 value={q}
-                onChange={(e) => { setQ(e.target.value); setHighlightedIdx(-1); }}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setHighlightedIdx(-1);
+                }}
                 onFocus={() => handleFocus('q')}
                 onBlur={handleBlur}
                 onKeyDown={handleKeyDown}
-                placeholder="Guru name…"
+                placeholder={t('landing.search.guruPlaceholder')}
                 autoComplete="off"
                 className="flex-1 outline-none text-[#202124] text-base placeholder-[#9aa0a6] bg-transparent min-w-0"
               />
-
               <div className="w-px h-5 bg-[#dfe1e5] flex-shrink-0" />
-
-              {/* Skill input */}
               <Tag className="w-4 h-4 text-[#9aa0a6] flex-shrink-0" />
               <input
                 ref={skillInputRef}
                 value={skill}
-                onChange={(e) => { setSkill(e.target.value); setHighlightedIdx(-1); }}
+                onChange={(e) => {
+                  setSkill(e.target.value);
+                  setHighlightedIdx(-1);
+                }}
                 onFocus={() => handleFocus('skill')}
                 onBlur={handleBlur}
                 onKeyDown={handleKeyDown}
-                placeholder="Skill…"
+                placeholder={t('landing.search.skillPlaceholder')}
                 autoComplete="off"
                 className="w-28 outline-none text-[#202124] text-base placeholder-[#9aa0a6] bg-transparent"
               />
             </div>
 
-            {/* Autocomplete dropdown */}
             {showDropdown && (
               <div className="absolute left-0 right-0 bg-white border border-[#dfe1e5] border-t-0 rounded-b-2xl shadow-lg z-50 overflow-hidden">
                 <div className="border-t border-[#ececec] mx-4" />
@@ -171,7 +176,10 @@ export default function Landing() {
                     <li key={`${item.type}-${item.label}`}>
                       <button
                         type="button"
-                        onMouseDown={(e) => { e.preventDefault(); applySuggestion(item); }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          applySuggestion(item);
+                        }}
                         onMouseEnter={() => setHighlightedIdx(idx)}
                         className={`w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors ${
                           idx === highlightedIdx ? 'bg-[#f1f3f4]' : 'hover:bg-[#f8f9fa]'
@@ -180,20 +188,30 @@ export default function Landing() {
                         {item.type === 'name' ? (
                           <>
                             {item.avatarUrl ? (
-                              <img src={item.avatarUrl} alt={item.label} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                              <img
+                                src={item.avatarUrl}
+                                alt={item.label}
+                                className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                              />
                             ) : (
                               <div className="w-6 h-6 rounded-full bg-[#1E3A8A] flex items-center justify-center text-white text-xs font-medium flex-shrink-0 select-none">
                                 {item.label[0]?.toUpperCase()}
                               </div>
                             )}
-                            <span className="text-sm text-[#202124] flex-1 truncate">{item.label}</span>
-                            <span className="text-xs text-[#475569]">Guru</span>
+                            <span className="text-sm text-[#202124] flex-1 truncate">
+                              {item.label}
+                            </span>
+                            <span className="text-xs text-[#475569]">
+                              {t('landing.search.labelGuru')}
+                            </span>
                           </>
                         ) : (
                           <>
                             <Tag className="w-4 h-4 text-[#9aa0a6] flex-shrink-0" />
                             <span className="text-sm text-[#202124] flex-1">{item.label}</span>
-                            <span className="text-xs text-[#475569]">Skill</span>
+                            <span className="text-xs text-[#475569]">
+                              {t('landing.search.labelSkill')}
+                            </span>
                           </>
                         )}
                       </button>
@@ -203,30 +221,23 @@ export default function Landing() {
               </div>
             )}
 
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
-              <Button type="submit" className="w-full sm:w-auto">Search Gurus</Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full sm:w-auto text-[#3c4043] border border-[#dfe1e5] hover:bg-[#f1f3f4]"
-                onClick={() => { setQ(''); setSkill(''); setSubmitted({ q: '', skill: '' }); closeDropdown(); }}
-              >
-                Browse All
-              </Button>
+            <div className="flex items-center justify-center mt-4">
+              <Button type="submit">{t('landing.search.button')}</Button>
             </div>
           </form>
         </div>
       </section>
 
-      {/* Results */}
-      <section className="max-w-7xl mx-auto px-4 pb-16">
-        <div className="border-t border-[#e8eaed] mb-8" />
-        <h2 className="text-[#202124] text-lg font-normal mb-6">
-          {hasSearch ? (
-            <><span className="text-[#5f6368] text-sm">Results for </span><span className="font-medium">"{submitted.q || submitted.skill}"</span></>
-          ) : 'Featured Gurus'}
-        </h2>
+      <section className="max-w-7xl mx-auto px-4 py-14">
+        <SectionHeader
+          title={
+            hasSearch
+              ? t('landing.discover.searchResults', { query: submitted.q || submitted.skill })
+              : t('landing.discover.title')
+          }
+          subtitle={t('landing.discover.subtitle')}
+          className="mb-10 text-center"
+        />
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -236,8 +247,7 @@ export default function Landing() {
           </div>
         ) : data?.data?.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-[#5f6368]">No results for <strong>"{submitted.q || submitted.skill}"</strong></p>
-            <p className="text-[#5f6368] text-sm mt-1">Try different keywords or browse all gurus</p>
+            <p className="text-[#5f6368]">{t('landing.discover.noGurus')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -248,32 +258,155 @@ export default function Landing() {
         )}
       </section>
 
-      {/* How it works */}
-      <section className="bg-[#f8fafc] border-t border-[#e8eaed] py-14 px-4">
-        <div className="max-w-4xl mx-auto">
+      <section className="bg-[#f8fafc] py-14 px-4">
+        <div className="max-w-6xl mx-auto">
           <SectionHeader
-            title="How SakshamBharat works"
-            subtitle="Find a guru, book a session, and grow your business with a simple marketplace designed for India."
+            title={t('landing.why.title')}
+            subtitle={t('landing.why.subtitle')}
             className="text-center mx-auto mb-10"
           />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { icon: '🔍', title: 'Find a Guru', desc: 'Browse profiles, skills, videos and ratings to find your perfect teacher.' },
-              { icon: '📅', title: 'Book a Session', desc: 'Pick a one-time appointment or a daily subscription that fits your schedule.' },
-              { icon: '⭐', title: 'Learn & Grow', desc: 'Attend the session and share your experience with a review.' },
-            ].map((item) => (
-              <FeatureCard key={item.title} icon={item.icon} title={item.title} description={item.desc} />
-            ))}
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="brand-card p-6">
+              <p className="text-sm text-[#1a73e8] uppercase tracking-wide font-semibold mb-3">
+                {t('landing.why.flexible.label')}
+              </p>
+              <p className="text-lg font-semibold text-[#111827]">
+                {t('landing.why.flexible.title')}
+              </p>
+              <p className="mt-4 text-sm text-[#475569] leading-relaxed">
+                {t('landing.why.flexible.body')}
+              </p>
+            </div>
+            <div className="brand-card p-6">
+              <p className="text-sm text-[#1a73e8] uppercase tracking-wide font-semibold mb-3">
+                {t('landing.why.earn.label')}
+              </p>
+              <p className="text-lg font-semibold text-[#111827]">{t('landing.why.earn.title')}</p>
+              <p className="mt-4 text-sm text-[#475569] leading-relaxed">
+                {t('landing.why.earn.body')}
+              </p>
+            </div>
+            <div className="brand-card p-6">
+              <p className="text-sm text-[#1a73e8] uppercase tracking-wide font-semibold mb-3">
+                {t('landing.why.trusted.label')}
+              </p>
+              <p className="text-lg font-semibold text-[#111827]">
+                {t('landing.why.trusted.title')}
+              </p>
+              <p className="mt-4 text-sm text-[#475569] leading-relaxed">
+                {t('landing.why.trusted.body')}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-[#e8eaed] bg-[#f8f9fa] py-4 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-[#5f6368]">
-          <span>© {new Date().getFullYear()} SakshamBharat</span>
-          <div className="flex gap-6">
-            <a href="/signup" className="hover:text-[#202124] transition-colors">Get started</a>
-            <a href="/login" className="hover:text-[#202124] transition-colors">Sign in</a>
+      <section className="max-w-7xl mx-auto px-4 py-14">
+        <SectionHeader
+          title={t('landing.stories.title')}
+          subtitle={t('landing.stories.subtitle')}
+          className="mb-10"
+        />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="brand-card p-6">
+            <p className="text-sm text-[#1a73e8] uppercase tracking-wide font-semibold mb-3">
+              {t('landing.stories.guru.label')}
+            </p>
+            <p className="text-lg font-semibold text-[#111827]">
+              {t('landing.stories.guru.title')}
+            </p>
+            <p className="mt-4 text-sm text-[#475569] leading-relaxed">
+              {t('landing.stories.guru.body')}
+            </p>
+            <p className="mt-5 text-xs text-[#9aa0a6]">{t('landing.stories.guru.author')}</p>
+          </div>
+          <div className="brand-card p-6">
+            <p className="text-sm text-[#1a73e8] uppercase tracking-wide font-semibold mb-3">
+              {t('landing.stories.learner.label')}
+            </p>
+            <p className="text-lg font-semibold text-[#111827]">
+              {t('landing.stories.learner.title')}
+            </p>
+            <p className="mt-4 text-sm text-[#475569] leading-relaxed">
+              {t('landing.stories.learner.body')}
+            </p>
+            <p className="mt-5 text-xs text-[#9aa0a6]">{t('landing.stories.learner.author')}</p>
+          </div>
+          <div className="brand-card p-6">
+            <p className="text-sm text-[#1a73e8] uppercase tracking-wide font-semibold mb-3">
+              {t('landing.stories.impact.label')}
+            </p>
+            <p className="text-lg font-semibold text-[#111827]">
+              {t('landing.stories.impact.title')}
+            </p>
+            <p className="mt-4 text-sm text-[#475569] leading-relaxed">
+              {t('landing.stories.impact.body')}
+            </p>
+            <p className="mt-5 text-xs text-[#9aa0a6]">{t('landing.stories.impact.author')}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#f8fafc] py-14 px-4">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeader
+            title={t('landing.roadmap.title')}
+            subtitle={t('landing.roadmap.subtitle')}
+            className="text-center mx-auto mb-10"
+          />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="brand-card p-6">
+              <h3 className="text-xl font-semibold text-[#111827]">
+                {t('landing.roadmap.work.title')}
+              </h3>
+              <ul className="mt-4 space-y-3 text-sm text-[#475569]">
+                <li className="flex gap-3">
+                  <span className="text-[#1a73e8]">✔</span> {t('landing.roadmap.work.item1')}
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-[#1a73e8]">✔</span> {t('landing.roadmap.work.item2')}
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-[#1a73e8]">✔</span> {t('landing.roadmap.work.item3')}
+                </li>
+              </ul>
+            </div>
+            <div className="brand-card p-6">
+              <h3 className="text-xl font-semibold text-[#111827]">
+                {t('landing.roadmap.why.title')}
+              </h3>
+              <p className="mt-4 text-sm text-[#475569] leading-relaxed">
+                {t('landing.roadmap.why.body')}
+              </p>
+              <div className="mt-6 space-y-3 text-sm text-[#475569]">
+                <p className="flex gap-3">
+                  <span className="text-[#1a73e8]">⚡</span> {t('landing.roadmap.why.item1')}
+                </p>
+                <p className="flex gap-3">
+                  <span className="text-[#1a73e8]">⚡</span> {t('landing.roadmap.why.item2')}
+                </p>
+                <p className="flex gap-3">
+                  <span className="text-[#1a73e8]">⚡</span> {t('landing.roadmap.why.item3')}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-[#e8eaed] bg-[#ffffff] py-6 px-4">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-[#5f6368]">
+          <span>{t('landing.footer.copyright', { year: new Date().getFullYear() })}</span>
+          <div className="flex flex-wrap gap-4">
+            <a href="/signup" className="hover:text-[#202124] transition-colors">
+              {t('landing.footer.getStarted')}
+            </a>
+            <a href="/login" className="hover:text-[#202124] transition-colors">
+              {t('landing.footer.signIn')}
+            </a>
+            <a href="/shop" className="hover:text-[#202124] transition-colors">
+              {t('landing.footer.shop')}
+            </a>
           </div>
         </div>
       </footer>

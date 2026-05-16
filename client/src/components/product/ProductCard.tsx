@@ -56,10 +56,14 @@ export function ProductCard({ product }: Props) {
       {/* Info */}
       <div className="flex flex-col flex-1 p-4 gap-2">
         {product.category && (
-          <span className="text-xs text-[#1a73e8] font-medium uppercase tracking-wide">{product.category}</span>
+          <span className="text-xs text-[#1a73e8] font-medium uppercase tracking-wide">
+            {product.category}
+          </span>
         )}
 
-        <p className="text-sm font-medium text-[#202124] line-clamp-2 leading-snug">{product.name}</p>
+        <p className="text-sm font-medium text-[#202124] line-clamp-2 leading-snug">
+          {product.name}
+        </p>
 
         {product.shortDescription && (
           <p className="text-xs text-[#5f6368] line-clamp-2">{product.shortDescription}</p>
@@ -85,7 +89,11 @@ export function ProductCard({ product }: Props) {
         {/* Guru attribution */}
         <div className="flex items-center gap-1.5 pt-1 border-t border-[#f1f3f4]">
           {product.guru.user.avatarUrl ? (
-            <img src={product.guru.user.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+            <img
+              src={product.guru.user.avatarUrl}
+              alt=""
+              className="w-5 h-5 rounded-full object-cover"
+            />
           ) : (
             <div className="w-5 h-5 rounded-full bg-[#1a73e8] flex items-center justify-center text-white text-[9px] font-medium">
               {product.guru.user.name.charAt(0).toUpperCase()}

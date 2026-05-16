@@ -7,13 +7,19 @@ export const ratingRepository = {
     Promise.all([
       prisma.rating.findMany({
         where: { guruId },
-        skip, take,
+        skip,
+        take,
         include: { student: { select: { name: true, avatarUrl: true } } },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.rating.count({ where: { guruId } }),
     ]),
 
-  create: (data: { bookingId: string; studentId: string; guruId: string; stars: number; comment?: string }) =>
-    prisma.rating.create({ data }),
+  create: (data: {
+    bookingId: string;
+    studentId: string;
+    guruId: string;
+    stars: number;
+    comment?: string;
+  }) => prisma.rating.create({ data }),
 };

@@ -10,6 +10,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+:lang(hi) { font-family: 'Noto Sans Devanagari', Roboto, sans-serif; }
+:lang(te) { font-family: 'Noto Sans Telugu', Roboto, sans-serif; }
+
 #root { min-height: 100vh; }
 
 :root {

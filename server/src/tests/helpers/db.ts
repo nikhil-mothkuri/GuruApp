@@ -7,8 +7,8 @@ export async function truncateAll() {
     // Single round-trip: much faster than 14 separate deleteMany against a remote DB
     await prisma.$executeRawUnsafe(
       `TRUNCATE "OrderItem","Order","RefreshToken","Rating","Booking","Favorite",` +
-      `"GuruSkill","GuruPhoto","GuruVideo","AvailabilitySlot","ProductImage","Product",` +
-      `"GuruProfile","User" CASCADE`,
+        `"GuruSkill","GuruPhoto","GuruVideo","AvailabilitySlot","ProductImage","Product",` +
+        `"GuruProfile","User" CASCADE`,
     );
   } else {
     // SQLite does not support TRUNCATE — use sequential deleteMany in FK order

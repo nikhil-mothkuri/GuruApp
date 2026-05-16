@@ -24,7 +24,11 @@ describe('api request interceptor', () => {
       return Promise.reject(new Error('intercepted'));
     });
 
-    try { await api.get('/test'); } catch { /* expected */ }
+    try {
+      await api.get('/test');
+    } catch {
+      /* expected */
+    }
 
     // The interceptor mutates the config before calling request
     // Instead, verify via the interceptor directly
@@ -44,7 +48,11 @@ describe('api request interceptor', () => {
       return Promise.reject(new Error('intercepted'));
     });
 
-    try { await api.get('/test'); } catch { /* expected */ }
+    try {
+      await api.get('/test');
+    } catch {
+      /* expected */
+    }
 
     expect(headers['Authorization']).toBeUndefined();
     vi.restoreAllMocks();
@@ -53,7 +61,15 @@ describe('api request interceptor', () => {
 
 describe('authStore state transitions', () => {
   it('setAuth then clearAuth resets to null', () => {
-    const user = { id: '1', email: 'a@b.com', name: 'A', avatarUrl: null, isGuru: false, isStudent: true, isAdmin: false };
+    const user = {
+      id: '1',
+      email: 'a@b.com',
+      name: 'A',
+      avatarUrl: null,
+      isGuru: false,
+      isStudent: true,
+      isAdmin: false,
+    };
     useAuthStore.getState().setAuth({ user, accessToken: 'at', refreshToken: 'rt' });
     expect(useAuthStore.getState().accessToken).toBe('at');
     useAuthStore.getState().clearAuth();
@@ -62,7 +78,15 @@ describe('authStore state transitions', () => {
   });
 
   it('updateTokens preserves user', () => {
-    const user = { id: '1', email: 'a@b.com', name: 'A', avatarUrl: null, isGuru: false, isStudent: true, isAdmin: false };
+    const user = {
+      id: '1',
+      email: 'a@b.com',
+      name: 'A',
+      avatarUrl: null,
+      isGuru: false,
+      isStudent: true,
+      isAdmin: false,
+    };
     useAuthStore.getState().setAuth({ user, accessToken: 'old', refreshToken: 'old-r' });
     useAuthStore.getState().updateTokens('new-at', 'new-rt');
     expect(useAuthStore.getState().user?.email).toBe('a@b.com');

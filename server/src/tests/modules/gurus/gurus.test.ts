@@ -21,7 +21,9 @@ describe('GET /api/gurus (public search)', () => {
   it('filters by name query', async () => {
     const res = await app.get('/api/gurus?q=Alice');
     expect(res.status).toBe(200);
-    expect(res.body.data.some((g: { user: { name: string } }) => g.user.name.includes('Alice'))).toBe(true);
+    expect(
+      res.body.data.some((g: { user: { name: string } }) => g.user.name.includes('Alice')),
+    ).toBe(true);
   });
 
   it('filters by skill', async () => {
@@ -38,7 +40,9 @@ describe('GET /api/gurus/suggestions', () => {
 
     const res = await app.get('/api/gurus/suggestions?q=Sugg');
     expect(res.status).toBe(200);
-    expect(res.body.data.names.some((n: { user: { name: string } }) => n.user.name.includes('Suggest'))).toBe(true);
+    expect(
+      res.body.data.names.some((n: { user: { name: string } }) => n.user.name.includes('Suggest')),
+    ).toBe(true);
   });
 
   it('returns empty arrays for blank query', async () => {
@@ -66,7 +70,7 @@ describe('GET /api/gurus/:id', () => {
 });
 
 describe('GET /api/gurus/me/profile', () => {
-  it('returns the guru\'s own profile', async () => {
+  it("returns the guru's own profile", async () => {
     const { user, profile } = await createTestGuru();
     const token = makeAccessToken(user.id, user.email);
 
@@ -86,7 +90,10 @@ describe('PUT /api/gurus/me/profile', () => {
     const { user } = await createTestGuru();
     const token = makeAccessToken(user.id, user.email);
 
-    const res = await app.put('/api/gurus/me/profile').set(authHeader(token)).send({ tagline: 'New tagline' });
+    const res = await app
+      .put('/api/gurus/me/profile')
+      .set(authHeader(token))
+      .send({ tagline: 'New tagline' });
     expect(res.status).toBe(200);
     expect(res.body.data.tagline).toBe('New tagline');
   });
@@ -97,7 +104,10 @@ describe('POST /api/gurus/me/skills', () => {
     const { user } = await createTestGuru();
     const token = makeAccessToken(user.id, user.email);
 
-    const res = await app.post('/api/gurus/me/skills').set(authHeader(token)).send({ skillName: 'TypeScript' });
+    const res = await app
+      .post('/api/gurus/me/skills')
+      .set(authHeader(token))
+      .send({ skillName: 'TypeScript' });
     expect(res.status).toBe(201);
     expect(res.body.data.skillName).toBe('TypeScript');
   });
@@ -106,7 +116,9 @@ describe('POST /api/gurus/me/skills', () => {
 describe('DELETE /api/gurus/me/skills/:skillId', () => {
   it('removes a skill from the guru profile', async () => {
     const { user, profile } = await createTestGuru();
-    const skill = await prisma.guruSkill.create({ data: { guruId: profile.id, skillName: 'Python' } });
+    const skill = await prisma.guruSkill.create({
+      data: { guruId: profile.id, skillName: 'Python' },
+    });
     const token = makeAccessToken(user.id, user.email);
 
     const res = await app.delete(`/api/gurus/me/skills/${skill.id}`).set(authHeader(token));

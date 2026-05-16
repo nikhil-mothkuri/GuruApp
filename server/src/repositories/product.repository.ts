@@ -18,20 +18,26 @@ function buildSlug(name: string, id: string) {
 }
 
 export const productRepository = {
-  findById: (id: string) =>
-    prisma.product.findUnique({ where: { id }, include: productInclude }),
+  findById: (id: string) => prisma.product.findUnique({ where: { id }, include: productInclude }),
 
   findBySlug: (slug: string) =>
     prisma.product.findUnique({ where: { slug }, include: productInclude }),
 
   findByGuruProfileId: (guruId: string, skip: number, take: number) =>
     Promise.all([
-      prisma.product.findMany({ where: { guruId }, skip, take, include: productInclude, orderBy: { createdAt: 'desc' } }),
+      prisma.product.findMany({
+        where: { guruId },
+        skip,
+        take,
+        include: productInclude,
+        orderBy: { createdAt: 'desc' },
+      }),
       prisma.product.count({ where: { guruId } }),
     ]).then(([items, total]) => ({ items, total })),
 
   search: async (query: ProductSearchQuery) => {
-    const { q, category, guruId, minPrice, maxPrice, isDigital, status, sortBy, page, limit } = query;
+    const { q, category, guruId, minPrice, maxPrice, isDigital, status, sortBy, page, limit } =
+      query;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = { status: status ?? 'ACTIVE' };
@@ -47,10 +53,13 @@ export const productRepository = {
     }
 
     const orderBy =
-      sortBy === 'price_asc' ? { price: 'asc' as const }
-      : sortBy === 'price_desc' ? { price: 'desc' as const }
-      : sortBy === 'popular' ? { viewCount: 'desc' as const }
-      : { createdAt: 'desc' as const };
+      sortBy === 'price_asc'
+        ? { price: 'asc' as const }
+        : sortBy === 'price_desc'
+          ? { price: 'desc' as const }
+          : sortBy === 'popular'
+            ? { viewCount: 'desc' as const }
+            : { createdAt: 'desc' as const };
 
     const [items, total] = await Promise.all([
       prisma.product.findMany({ where, skip, take: limit, include: productInclude, orderBy }),
@@ -73,7 +82,11 @@ export const productRepository = {
     });
     // re-slug with real id
     const slug = buildSlug(data.name, product.id);
-    return prisma.product.update({ where: { id: product.id }, data: { slug }, include: productInclude });
+    return prisma.product.update({
+      where: { id: product.id },
+      data: { slug },
+      include: productInclude,
+    });
   },
 
   update: async (id: string, guruId: string, data: UpdateProductDto) => {

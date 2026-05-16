@@ -19,7 +19,8 @@ export const bookingRepository = {
 
   findByGuru: (guruId: string, filter?: 'upcoming' | 'past') => {
     const now = new Date();
-    const dateFilter = filter === 'upcoming' ? { gte: now } : filter === 'past' ? { lt: now } : undefined;
+    const dateFilter =
+      filter === 'upcoming' ? { gte: now } : filter === 'past' ? { lt: now } : undefined;
     return prisma.booking.findMany({
       where: { guruId, ...(dateFilter ? { scheduledAt: dateFilter } : {}) },
       include: bookingInclude,

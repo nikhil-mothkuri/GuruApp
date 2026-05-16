@@ -6,13 +6,18 @@ const orderInclude = {
 };
 
 export const orderRepository = {
-  findById: (id: string) =>
-    prisma.order.findUnique({ where: { id }, include: orderInclude }),
+  findById: (id: string) => prisma.order.findUnique({ where: { id }, include: orderInclude }),
 
   findByGuruId: (guruId: string, status: string | undefined, skip: number, take: number) => {
     const where = { guruId, ...(status ? { status } : {}) };
     return Promise.all([
-      prisma.order.findMany({ where, skip, take, include: orderInclude, orderBy: { createdAt: 'desc' } }),
+      prisma.order.findMany({
+        where,
+        skip,
+        take,
+        include: orderInclude,
+        orderBy: { createdAt: 'desc' },
+      }),
       prisma.order.count({ where }),
     ]).then(([items, total]) => ({ items, total }));
   },
@@ -31,7 +36,13 @@ export const orderRepository = {
     notes?: string;
     totalAmount: number;
     currency: string;
-    items: { productId: string; productName: string; unitPrice: number; quantity: number; totalPrice: number }[];
+    items: {
+      productId: string;
+      productName: string;
+      unitPrice: number;
+      quantity: number;
+      totalPrice: number;
+    }[];
   }) => {
     const { items, ...orderData } = data;
     return prisma.order.create({

@@ -2,19 +2,18 @@ import { useState } from 'react';
 import { X, CalendarDays, RefreshCw } from 'lucide-react';
 import { useCreateBooking } from '@/hooks/useBookings';
 import type { AvailabilitySlot } from '@guruapp/shared';
-import { DAY_NAMES } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   guruId: string;
   guruName: string;
-  /** When provided, APPOINTMENT mode is available and date is restricted to the slot's weekday. */
   slot?: AvailabilitySlot;
-  /** When true, only SUBSCRIPTION is shown (no slot required). */
   subscriptionOnly?: boolean;
   onClose: () => void;
 }
 
 export function BookingModal({ guruId, guruName, slot, subscriptionOnly = false, onClose }: Props) {
+  const { t } = useTranslation();
   const initialType = subscriptionOnly ? 'SUBSCRIPTION' : 'APPOINTMENT';
   const [type, setType] = useState<'APPOINTMENT' | 'SUBSCRIPTION'>(initialType);
   const [date, setDate] = useState('');
@@ -23,7 +22,6 @@ export function BookingModal({ guruId, guruName, slot, subscriptionOnly = false,
 
   const today = new Date().toISOString().split('T')[0];
 
-  // For APPOINTMENT: check the selected date falls on the slot's day of week
   const selectedDow = date ? new Date(`${date}T12:00:00`).getDay() : null;
   const dayMismatch = type === 'APPOINTMENT' && slot && date && selectedDow !== slot.dayOfWeek;
 
@@ -39,7 +37,10 @@ export function BookingModal({ guruId, guruName, slot, subscriptionOnly = false,
       slotId: type === 'APPOINTMENT' && slot ? slot.id : undefined,
       type,
       scheduledAt,
-      recurrenceRule: type === 'SUBSCRIPTION' ? { freq: 'DAILY', until: new Date(`${until}T23:59:59`).toISOString() } : undefined,
+      recurrenceRule:
+        type === 'SUBSCRIPTION'
+          ? { freq: 'DAILY', until: new Date(`${until}T23:59:59`).toISOString() }
+          : undefined,
     });
     onClose();
   };
@@ -47,28 +48,31 @@ export function BookingModal({ guruId, guruName, slot, subscriptionOnly = false,
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#e8eaed]">
           <div>
-            <h2 className="text-base font-medium text-[#202124]">Book with {guruName}</h2>
+            <h2 className="text-base font-medium text-[#202124]">
+              {t('booking.title', { guruName })}
+            </h2>
             {slot && (
               <p className="text-sm text-[#5f6368] mt-0.5">
-                {DAY_NAMES[slot.dayOfWeek]} · {slot.startTime} – {slot.endTime} · {slot.slotDurationMins} min
+                {t(`days.${slot.dayOfWeek}`)} · {slot.startTime} – {slot.endTime} ·{' '}
+                {slot.slotDurationMins} min
               </p>
             )}
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-[#f1f3f4] transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-full hover:bg-[#f1f3f4] transition-colors"
+          >
             <X className="w-5 h-5 text-[#5f6368]" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
-
-          {/* Session type — only show toggle when both options make sense */}
           {!subscriptionOnly && slot && (
             <div>
-              <p className="text-sm font-medium text-[#202124] mb-2">Session type</p>
+              <p className="text-sm font-medium text-[#202124] mb-2">{t('booking.sessionType')}</p>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -79,7 +83,7 @@ export function BookingModal({ guruId, guruName, slot, subscriptionOnly = false,
                       : 'border-[#dadce0] text-[#5f6368] hover:border-[#aaa]'
                   }`}
                 >
-                  <CalendarDays className="w-4 h-4" /> One-time
+                  <CalendarDays className="w-4 h-4" /> {t('booking.oneTime')}
                 </button>
                 <button
                   type="button"
@@ -90,28 +94,26 @@ export function BookingModal({ guruId, guruName, slot, subscriptionOnly = false,
                       : 'border-[#dadce0] text-[#5f6368] hover:border-[#aaa]'
                   }`}
                 >
-                  <RefreshCw className="w-4 h-4" /> Recurring
+                  <RefreshCw className="w-4 h-4" /> {t('booking.recurring')}
                 </button>
               </div>
             </div>
           )}
 
-          {/* SUBSCRIPTION label when no toggle is shown */}
           {subscriptionOnly && (
             <div className="flex items-center gap-2 text-sm text-[#1a73e8] bg-[#e8f0fe] px-3 py-2 rounded-lg">
               <RefreshCw className="w-4 h-4" />
-              <span className="font-medium">Recurring daily sessions</span>
+              <span className="font-medium">{t('booking.recurringLabel')}</span>
             </div>
           )}
 
-          {/* APPOINTMENT — single date with weekday hint */}
           {type === 'APPOINTMENT' && (
             <div>
               <label className="block text-sm font-medium text-[#202124] mb-1.5">
-                Session date
+                {t('booking.sessionDate')}
                 {slot && (
                   <span className="ml-2 font-normal text-[#5f6368]">
-                    — must be a <strong>{DAY_NAMES[slot.dayOfWeek]}</strong>
+                    {t('booking.mustBe', { day: t(`days.${slot.dayOfWeek}`) })}
                   </span>
                 )}
               </label>
@@ -125,17 +127,21 @@ export function BookingModal({ guruId, guruName, slot, subscriptionOnly = false,
               />
               {dayMismatch && slot && (
                 <p className="text-[#d93025] text-xs mt-1.5">
-                  That date is a {DAY_NAMES[selectedDow!]}. Please pick a {DAY_NAMES[slot.dayOfWeek]}.
+                  {t('booking.dayMismatch', {
+                    actual: t(`days.${selectedDow!}`),
+                    expected: t(`days.${slot.dayOfWeek}`),
+                  })}
                 </p>
               )}
             </div>
           )}
 
-          {/* SUBSCRIPTION — start + end date */}
           {type === 'SUBSCRIPTION' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-[#202124] mb-1.5">Start date</label>
+                <label className="block text-sm font-medium text-[#202124] mb-1.5">
+                  {t('booking.startDate')}
+                </label>
                 <input
                   type="date"
                   value={date}
@@ -146,7 +152,9 @@ export function BookingModal({ guruId, guruName, slot, subscriptionOnly = false,
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#202124] mb-1.5">Subscribe until</label>
+                <label className="block text-sm font-medium text-[#202124] mb-1.5">
+                  {t('booking.subscribeUntil')}
+                </label>
                 <input
                   type="date"
                   value={until}
@@ -161,21 +169,25 @@ export function BookingModal({ guruId, guruName, slot, subscriptionOnly = false,
 
           {createBooking.error && (
             <p className="text-[#d93025] text-sm bg-[#fce8e6] px-3 py-2 rounded">
-              {(createBooking.error as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message ?? 'Booking failed'}
+              {(createBooking.error as { response?: { data?: { error?: { message?: string } } } })
+                .response?.data?.error?.message ?? t('booking.failed')}
             </p>
           )}
 
-          {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="px-5 py-2 rounded-full text-sm font-medium text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors">
-              Cancel
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 rounded-full text-sm font-medium text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors"
+            >
+              {t('booking.cancel')}
             </button>
             <button
               type="submit"
               disabled={createBooking.isPending || !!dayMismatch}
               className="px-6 py-2 rounded-full text-sm font-medium bg-[#1a73e8] text-white hover:bg-[#1557b0] transition-colors disabled:opacity-60 shadow-sm"
             >
-              {createBooking.isPending ? 'Booking…' : 'Confirm'}
+              {createBooking.isPending ? t('booking.booking') : t('booking.confirm')}
             </button>
           </div>
         </form>

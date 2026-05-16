@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -31,38 +32,51 @@ function PageLoader() {
 }
 
 export default function App() {
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    document.documentElement.lang = i18n.language;
+    const handler = (lang: string) => {
+      document.documentElement.lang = lang;
+    };
+    i18n.on('languageChanged', handler);
+    return () => {
+      i18n.off('languageChanged', handler);
+    };
+  }, [i18n]);
+
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <div className="min-h-screen bg-gray-50">
-          <Navbar />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/guru/:id" element={<GuruProfile />} />
-              <Route path="/shop" element={<Shop />} />
-              <Route path="/shop/:id" element={<ProductDetail />} />
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/guru/:id" element={<GuruProfile />} />
+                <Route path="/shop" element={<Shop />} />
+                <Route path="/shop/:id" element={<ProductDetail />} />
 
-              <Route element={<ProtectedRoute />}>
-                <Route element={<ProtectedRoute role="student" />}>
-                  <Route path="/dashboard/student" element={<StudentDashboard />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<ProtectedRoute role="student" />}>
+                    <Route path="/dashboard/student" element={<StudentDashboard />} />
+                  </Route>
+                  <Route element={<ProtectedRoute role="guru" />}>
+                    <Route path="/dashboard/guru" element={<GuruDashboard />} />
+                    <Route path="/dashboard/guru/products" element={<GuruProducts />} />
+                  </Route>
+                  <Route element={<ProtectedRoute role="admin" />}>
+                    <Route path="/admin" element={<AdminPanel />} />
+                  </Route>
                 </Route>
-                <Route element={<ProtectedRoute role="guru" />}>
-                  <Route path="/dashboard/guru" element={<GuruDashboard />} />
-                  <Route path="/dashboard/guru/products" element={<GuruProducts />} />
-                </Route>
-                <Route element={<ProtectedRoute role="admin" />}>
-                  <Route path="/admin" element={<AdminPanel />} />
-                </Route>
-              </Route>
-            </Routes>
-          </Suspense>
-        </div>
-      </BrowserRouter>
-    </QueryClientProvider>
+              </Routes>
+            </Suspense>
+          </div>
+        </BrowserRouter>
+      </QueryClientProvider>
     </GoogleOAuthProvider>
   );
 }

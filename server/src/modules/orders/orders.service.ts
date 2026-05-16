@@ -20,7 +20,12 @@ export const ordersService = {
     for (const item of dto.items) {
       const product = await productRepository.findById(item.productId);
       if (!product) throw new AppError(`Product ${item.productId} not found`, 404, 'NOT_FOUND');
-      if (product.status !== 'ACTIVE') throw new AppError(`Product "${product.name}" is not available`, 400, 'PRODUCT_UNAVAILABLE');
+      if (product.status !== 'ACTIVE')
+        throw new AppError(
+          `Product "${product.name}" is not available`,
+          400,
+          'PRODUCT_UNAVAILABLE',
+        );
       if (!product.isDigital && product.stock < item.quantity) {
         throw new AppError(`Insufficient stock for "${product.name}"`, 400, 'INSUFFICIENT_STOCK');
       }
@@ -36,7 +41,8 @@ export const ordersService = {
     }
 
     const guruIds = [...new Set(resolvedItems.map((i) => i.guruId))];
-    if (guruIds.length !== 1) throw new AppError('All items must be from the same guru', 400, 'MIXED_GURU_ORDER');
+    if (guruIds.length !== 1)
+      throw new AppError('All items must be from the same guru', 400, 'MIXED_GURU_ORDER');
 
     const guruProfileId = guruIds[0];
     const guruProfile = await guruRepository.findById(guruProfileId);
@@ -67,10 +73,20 @@ export const ordersService = {
 
   async getMyOrders(userId: string, query: OrderSearchQuery) {
     const skip = (query.page - 1) * query.limit;
-    const { items, total } = await orderRepository.findByGuruId(userId, query.status, skip, query.limit);
+    const { items, total } = await orderRepository.findByGuruId(
+      userId,
+      query.status,
+      skip,
+      query.limit,
+    );
     return {
       data: items,
-      meta: { total, page: query.page, limit: query.limit, totalPages: Math.ceil(total / query.limit) },
+      meta: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      },
     };
   },
 

@@ -28,10 +28,21 @@ export function useProductBySlug(slug: string) {
   });
 }
 
+export function useGuruProducts(guruId: string) {
+  return useQuery({
+    queryKey: ['products', 'guru', guruId],
+    queryFn: () =>
+      api.get('/products', { params: { guruId, status: 'ACTIVE', limit: 20 } }).then((r) => r.data),
+    enabled: !!guruId,
+    staleTime: 60_000,
+  });
+}
+
 export function useMyProducts(page = 1, limit = 20) {
   return useQuery({
     queryKey: ['products', 'me', { page, limit }],
-    queryFn: () => api.get('/products/me/products', { params: { page, limit } }).then((r) => r.data),
+    queryFn: () =>
+      api.get('/products/me/products', { params: { page, limit } }).then((r) => r.data),
   });
 }
 
@@ -66,13 +77,23 @@ export function useDeleteProduct() {
 export function useUploadProductImage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ productId, file, altText }: { productId: string; file: File; altText?: string }) => {
+    mutationFn: ({
+      productId,
+      file,
+      altText,
+    }: {
+      productId: string;
+      file: File;
+      altText?: string;
+    }) => {
       const form = new FormData();
       form.append('image', file);
       if (altText) form.append('altText', altText);
-      return api.post(`/products/${productId}/images`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      }).then((r) => r.data.data);
+      return api
+        .post(`/products/${productId}/images`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then((r) => r.data.data);
     },
     onSuccess: (_data, { productId }) => {
       qc.invalidateQueries({ queryKey: ['products', 'me'] });

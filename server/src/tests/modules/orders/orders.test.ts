@@ -1,5 +1,11 @@
 import { createTestApp } from '../../helpers/app';
-import { createTestUser, createTestGuru, createActiveProduct, authHeader, makeAccessToken } from '../../helpers/factories';
+import {
+  createTestUser,
+  createTestGuru,
+  createActiveProduct,
+  authHeader,
+  makeAccessToken,
+} from '../../helpers/factories';
 
 const app = createTestApp();
 
@@ -30,9 +36,14 @@ describe('POST /api/orders (place order)', () => {
     const buyer = await createTestUser({ email: 'loggedin@example.com' });
     const token = makeAccessToken(buyer.id, buyer.email);
 
-    const res = await app.post('/api/orders')
+    const res = await app
+      .post('/api/orders')
       .set(authHeader(token))
-      .send({ buyerName: 'Logged In', buyerEmail: buyer.email, items: [{ productId: product.id, quantity: 1 }] });
+      .send({
+        buyerName: 'Logged In',
+        buyerEmail: buyer.email,
+        items: [{ productId: product.id, quantity: 1 }],
+      });
 
     expect(res.status).toBe(201);
     expect(res.body.data.userId).toBe(buyer.id);
@@ -81,7 +92,8 @@ describe('POST /api/orders (place order)', () => {
 
   it('returns 404 for unknown product', async () => {
     const res = await app.post('/api/orders').send({
-      buyerName: 'Buyer', buyerEmail: 'b@b.com',
+      buyerName: 'Buyer',
+      buyerEmail: 'b@b.com',
       items: [{ productId: 'nonexistent-id', quantity: 1 }],
     });
     expect(res.status).toBe(404);
@@ -94,15 +106,21 @@ describe('POST /api/orders (place order)', () => {
     const prod2 = await createActiveProduct(p2.id);
 
     const res = await app.post('/api/orders').send({
-      buyerName: 'Buyer', buyerEmail: 'b@b.com',
-      items: [{ productId: prod1.id, quantity: 1 }, { productId: prod2.id, quantity: 1 }],
+      buyerName: 'Buyer',
+      buyerEmail: 'b@b.com',
+      items: [
+        { productId: prod1.id, quantity: 1 },
+        { productId: prod2.id, quantity: 1 },
+      ],
     });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('MIXED_GURU_ORDER');
   });
 
   it('returns 422 for empty items array', async () => {
-    const res = await app.post('/api/orders').send({ buyerName: 'B', buyerEmail: 'b@b.com', items: [] });
+    const res = await app
+      .post('/api/orders')
+      .send({ buyerName: 'B', buyerEmail: 'b@b.com', items: [] });
     expect(res.status).toBe(422);
   });
 
@@ -111,7 +129,8 @@ describe('POST /api/orders (place order)', () => {
     const product = await createActiveProduct(profile.id, { price: 25 });
 
     const res = await app.post('/api/orders').send({
-      buyerName: 'B', buyerEmail: 'b@b.com',
+      buyerName: 'B',
+      buyerEmail: 'b@b.com',
       items: [{ productId: product.id, quantity: 3 }],
     });
     expect(res.status).toBe(201);
@@ -152,7 +171,9 @@ describe('GET /api/orders/me (guru views own orders)', () => {
 
     const token = makeAccessToken(user.id, user.email);
     const pendingRes = await app.get('/api/orders/me?status=PENDING').set(authHeader(token));
-    expect(pendingRes.body.data.every((o: { status: string }) => o.status === 'PENDING')).toBe(true);
+    expect(pendingRes.body.data.every((o: { status: string }) => o.status === 'PENDING')).toBe(
+      true,
+    );
 
     const confirmedRes = await app.get('/api/orders/me?status=CONFIRMED').set(authHeader(token));
     expect(confirmedRes.body.data.length).toBe(0);
@@ -167,7 +188,8 @@ describe('PATCH /api/orders/me/:id/status', () => {
     const orderId = orderRes.body.data.id;
 
     const token = makeAccessToken(user.id, user.email);
-    const res = await app.patch(`/api/orders/me/${orderId}/status`)
+    const res = await app
+      .patch(`/api/orders/me/${orderId}/status`)
       .set(authHeader(token))
       .send({ status: 'CONFIRMED' });
     expect(res.status).toBe(200);
@@ -181,8 +203,10 @@ describe('PATCH /api/orders/me/:id/status', () => {
 
     const { user: other } = await createTestGuru({ email: 'other@ex.com' });
     const token = makeAccessToken(other.id, other.email);
-    const res = await app.patch(`/api/orders/me/${orderRes.body.data.id}/status`)
-      .set(authHeader(token)).send({ status: 'CONFIRMED' });
+    const res = await app
+      .patch(`/api/orders/me/${orderRes.body.data.id}/status`)
+      .set(authHeader(token))
+      .send({ status: 'CONFIRMED' });
     expect(res.status).toBe(403);
   });
 });

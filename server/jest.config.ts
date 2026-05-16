@@ -19,16 +19,11 @@ const config: Config = {
   maxWorkers: 1,
   // Remote Neon DB needs generous timeouts (vs local SQLite which is instant)
   testTimeout: 30000,
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/server.ts',
-    '!src/tests/**',
-  ],
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/server.ts', '!src/tests/**'],
   coverageThreshold: {
     global: {
       lines: 70,
-      branches: 60,   // storage.ts file I/O is untestable without mocks; raised in MVP 3+
+      branches: 60, // storage.ts file I/O is untestable without mocks; raised in MVP 3+
       functions: 70,
       statements: 70,
     },

@@ -15,19 +15,44 @@ adminRouter.get('/users', async (req: AuthRequest, res: Response, next: NextFunc
     const limit = Number(req.query.limit ?? 20);
     const skip = (page - 1) * limit;
     const [users, total] = await Promise.all([
-      prisma.user.findMany({ skip, take: limit, orderBy: { createdAt: 'desc' as const }, select: { id: true, email: true, name: true, isGuru: true, isStudent: true, isAdmin: true, isActive: true, createdAt: true } }),
+      prisma.user.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' as const },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          isGuru: true,
+          isStudent: true,
+          isAdmin: true,
+          isActive: true,
+          createdAt: true,
+        },
+      }),
       prisma.user.count(),
     ]);
     res.json({ data: users, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 adminRouter.patch('/users/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { isActive, isGuru, isStudent } = req.body as { isActive?: boolean; isGuru?: boolean; isStudent?: boolean };
-    const user = await prisma.user.update({ where: { id: req.params['id'] as string }, data: { isActive, isGuru, isStudent } });
+    const { isActive, isGuru, isStudent } = req.body as {
+      isActive?: boolean;
+      isGuru?: boolean;
+      isStudent?: boolean;
+    };
+    const user = await prisma.user.update({
+      where: { id: req.params['id'] as string },
+      data: { isActive, isGuru, isStudent },
+    });
     res.json({ data: user });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 adminRouter.get('/metrics', async (_req: AuthRequest, res: Response, next: NextFunction) => {
@@ -39,5 +64,7 @@ adminRouter.get('/metrics', async (_req: AuthRequest, res: Response, next: NextF
       prisma.user.count({ where: { isGuru: true, isActive: true } }),
     ]);
     res.json({ data: { totalUsers, totalBookings, totalRatings, activeGurus } });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });

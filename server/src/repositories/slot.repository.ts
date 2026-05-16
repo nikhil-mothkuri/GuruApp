@@ -6,11 +6,69 @@ export const slotRepository = {
 
   findById: (id: string) => prisma.availabilitySlot.findUnique({ where: { id } }),
 
-  create: (guruId: string, data: { dayOfWeek: number; startTime: string; endTime: string; slotDurationMins: number }) =>
-    prisma.availabilitySlot.create({ data: { guruId, ...data } }),
+  create: (
+    guruId: string,
+    data: {
+      dayOfWeek?: number | null;
+      date?: string | null;
+      startDate?: string | null;
+      endDate?: string | null;
+      recurrenceRule?: { freq: 'DAILY'; until: string } | string | null;
+      startTime?: string | null;
+      endTime?: string | null;
+      slotDurationMins?: number;
+    },
+  ) => {
+    const payload = {
+      guruId,
+      dayOfWeek: data.dayOfWeek ?? null,
+      date: data.date ?? null,
+      startDate: data.startDate ?? null,
+      endDate: data.endDate ?? null,
+      recurrenceRule:
+        data.recurrenceRule && typeof data.recurrenceRule !== 'string'
+          ? JSON.stringify(data.recurrenceRule)
+          : (data.recurrenceRule ?? null),
+      startTime: data.startTime ?? null,
+      endTime: data.endTime ?? null,
+      slotDurationMins: data.slotDurationMins ?? null,
+    } as any;
 
-  update: (id: string, data: { dayOfWeek?: number; startTime?: string; endTime?: string; slotDurationMins?: number; isActive?: boolean }) =>
-    prisma.availabilitySlot.update({ where: { id }, data }),
+    return prisma.availabilitySlot.create({ data: payload });
+  },
 
-  delete: (id: string) => prisma.availabilitySlot.update({ where: { id }, data: { isActive: false } }),
+  update: (
+    id: string,
+    data: {
+      dayOfWeek?: number | null;
+      date?: string | null;
+      startDate?: string | null;
+      endDate?: string | null;
+      recurrenceRule?: { freq: 'DAILY'; until: string } | string | null;
+      startTime?: string | null;
+      endTime?: string | null;
+      slotDurationMins?: number;
+      isActive?: boolean;
+    },
+  ) => {
+    const payload: any = {};
+    if (data.dayOfWeek !== undefined) payload.dayOfWeek = data.dayOfWeek;
+    if (data.date !== undefined) payload.date = data.date;
+    if (data.startDate !== undefined) payload.startDate = data.startDate;
+    if (data.endDate !== undefined) payload.endDate = data.endDate;
+    if (data.recurrenceRule !== undefined)
+      payload.recurrenceRule =
+        typeof data.recurrenceRule === 'object' && data.recurrenceRule !== null
+          ? JSON.stringify(data.recurrenceRule)
+          : data.recurrenceRule;
+    if (data.startTime !== undefined) payload.startTime = data.startTime;
+    if (data.endTime !== undefined) payload.endTime = data.endTime;
+    if (data.slotDurationMins !== undefined) payload.slotDurationMins = data.slotDurationMins;
+    if (data.isActive !== undefined) payload.isActive = data.isActive;
+
+    return prisma.availabilitySlot.update({ where: { id }, data: payload });
+  },
+
+  delete: (id: string) =>
+    prisma.availabilitySlot.update({ where: { id }, data: { isActive: false } }),
 };

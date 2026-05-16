@@ -24,7 +24,13 @@ const app = createTestApp();
 // ─── SIGNUP ─────────────────────────────────────────────────────────────────
 
 describe('POST /api/auth/signup', () => {
-  const valid = { email: 'new@example.com', name: 'New User', password: 'Password1!', isStudent: true, isGuru: false };
+  const valid = {
+    email: 'new@example.com',
+    name: 'New User',
+    password: 'Password1!',
+    isStudent: true,
+    isGuru: false,
+  };
 
   it('returns 201 with user and tokens', async () => {
     const res = await app.post('/api/auth/signup').send(valid);
@@ -41,7 +47,9 @@ describe('POST /api/auth/signup', () => {
   });
 
   it('persists isGuru flag when true', async () => {
-    const res = await app.post('/api/auth/signup').send({ ...valid, email: 'guru@ex.com', isGuru: true });
+    const res = await app
+      .post('/api/auth/signup')
+      .send({ ...valid, email: 'guru@ex.com', isGuru: true });
     expect(res.body.data.user.isGuru).toBe(true);
   });
 
@@ -77,34 +85,52 @@ describe('POST /api/auth/login', () => {
   });
 
   it('returns 200 with tokens for correct credentials', async () => {
-    const res = await app.post('/api/auth/login').send({ email: 'login@example.com', password: 'Password1!' });
+    const res = await app
+      .post('/api/auth/login')
+      .send({ email: 'login@example.com', password: 'Password1!' });
     expect(res.status).toBe(200);
     expect(res.body.data.accessToken).toBeTruthy();
     expect(res.body.data.refreshToken).toBeTruthy();
   });
 
   it('returns 401 for wrong password', async () => {
-    const res = await app.post('/api/auth/login').send({ email: 'login@example.com', password: 'WrongPass1!' });
+    const res = await app
+      .post('/api/auth/login')
+      .send({ email: 'login@example.com', password: 'WrongPass1!' });
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
   });
 
   it('returns 401 for non-existent email', async () => {
-    const res = await app.post('/api/auth/login').send({ email: 'nobody@example.com', password: 'Password1!' });
+    const res = await app
+      .post('/api/auth/login')
+      .send({ email: 'nobody@example.com', password: 'Password1!' });
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
   });
 
   it('returns 401 for Google-only account (no passwordHash)', async () => {
-    await createTestUser({ email: 'google-only@example.com', passwordHash: null, googleId: 'gid-123' });
-    const res = await app.post('/api/auth/login').send({ email: 'google-only@example.com', password: 'anything' });
+    await createTestUser({
+      email: 'google-only@example.com',
+      passwordHash: null,
+      googleId: 'gid-123',
+    });
+    const res = await app
+      .post('/api/auth/login')
+      .send({ email: 'google-only@example.com', password: 'anything' });
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
   });
 
   it('returns 401 for inactive account', async () => {
-    await createTestUser({ email: 'inactive@example.com', password: 'Password1!', isActive: false });
-    const res = await app.post('/api/auth/login').send({ email: 'inactive@example.com', password: 'Password1!' });
+    await createTestUser({
+      email: 'inactive@example.com',
+      password: 'Password1!',
+      isActive: false,
+    });
+    const res = await app
+      .post('/api/auth/login')
+      .send({ email: 'inactive@example.com', password: 'Password1!' });
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
   });
@@ -124,7 +150,11 @@ describe('POST /api/auth/refresh', () => {
 
   beforeEach(async () => {
     const signupRes = await app.post('/api/auth/signup').send({
-      email: 'refresh@example.com', name: 'Refresh User', password: 'Password1!', isStudent: true, isGuru: false,
+      email: 'refresh@example.com',
+      name: 'Refresh User',
+      password: 'Password1!',
+      isStudent: true,
+      isGuru: false,
     });
     userId = signupRes.body.data.user.id;
     email = signupRes.body.data.user.email;
@@ -175,7 +205,11 @@ describe('POST /api/auth/logout', () => {
 
   beforeEach(async () => {
     const res = await app.post('/api/auth/signup').send({
-      email: 'logout@example.com', name: 'Logout User', password: 'Password1!', isStudent: true, isGuru: false,
+      email: 'logout@example.com',
+      name: 'Logout User',
+      password: 'Password1!',
+      isStudent: true,
+      isGuru: false,
     });
     accessToken = res.body.data.accessToken;
     refreshToken = res.body.data.refreshToken;

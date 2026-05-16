@@ -17,11 +17,11 @@ export function GoogleAuthButton({ onSuccess }: Props) {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-full">
       <GoogleLogin
         onSuccess={handleCredential}
         onError={() => {}}
-        width="400"
+        width="100%"
         theme="outline"
         size="large"
         text="continue_with"
@@ -29,8 +29,8 @@ export function GoogleAuthButton({ onSuccess }: Props) {
       />
       {googleAuth.error && (
         <p className="text-red-500 text-sm mt-2 text-center">
-          {(googleAuth.error as { response?: { data?: { error?: { message?: string } } } })
-            .response?.data?.error?.message ?? 'Google sign-in failed'}
+          {(googleAuth.error as { response?: { data?: { error?: { message?: string } } } }).response
+            ?.data?.error?.message ?? 'Google sign-in failed'}
         </p>
       )}
     </div>

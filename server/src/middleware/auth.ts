@@ -25,7 +25,11 @@ export function optionalAuthenticate(req: AuthRequest, _res: Response, next: Nex
     : undefined;
   const token = cookieToken ?? headerToken;
   if (token) {
-    try { req.user = verifyAccessToken(token); } catch { /* ignore invalid/expired token */ }
+    try {
+      req.user = verifyAccessToken(token);
+    } catch {
+      /* ignore invalid/expired token */
+    }
   }
   next();
 }

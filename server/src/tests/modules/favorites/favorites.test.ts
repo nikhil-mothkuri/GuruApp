@@ -1,5 +1,10 @@
 import { createTestApp } from '../../helpers/app';
-import { createTestUser, createTestGuru, authHeader, makeAccessToken } from '../../helpers/factories';
+import {
+  createTestUser,
+  createTestGuru,
+  authHeader,
+  makeAccessToken,
+} from '../../helpers/factories';
 
 const app = createTestApp();
 
@@ -32,7 +37,9 @@ describe('Favorites', () => {
     const token = makeAccessToken(student.id, student.email);
 
     await app.post(`/api/students/me/favorites/${guruUser.id}`).set(authHeader(token));
-    const res = await app.delete(`/api/students/me/favorites/${guruUser.id}`).set(authHeader(token));
+    const res = await app
+      .delete(`/api/students/me/favorites/${guruUser.id}`)
+      .set(authHeader(token));
     expect(res.status).toBe(204);
 
     const listRes = await app.get('/api/students/me/favorites').set(authHeader(token));

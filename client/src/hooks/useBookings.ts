@@ -5,14 +5,16 @@ import type { CreateBookingDto } from '@guruapp/shared';
 export function useMyBookings(status?: string) {
   return useQuery({
     queryKey: ['bookings', 'student', status],
-    queryFn: () => api.get('/bookings', { params: status ? { status } : {} }).then((r) => r.data.data),
+    queryFn: () =>
+      api.get('/bookings', { params: status ? { status } : {} }).then((r) => r.data.data),
   });
 }
 
 export function useGuruBookings(filter?: 'upcoming' | 'past') {
   return useQuery({
     queryKey: ['bookings', 'guru', filter],
-    queryFn: () => api.get('/bookings/guru', { params: filter ? { filter } : {} }).then((r) => r.data.data),
+    queryFn: () =>
+      api.get('/bookings/guru', { params: filter ? { filter } : {} }).then((r) => r.data.data),
   });
 }
 

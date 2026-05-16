@@ -6,7 +6,8 @@
     "build": "pnpm --filter shared build && pnpm --filter server build && pnpm --filter client build",
     "lint": "pnpm -r lint",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "run-agent": "node ./scripts/agent-runner.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

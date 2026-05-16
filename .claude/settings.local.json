@@ -6,7 +6,15 @@
       "PowerShell(pnpm add *)",
       "PowerShell(npm run *)",
       "PowerShell(cd \"C:\\\\Users\\\\Nikhi\\\\Documents\\\\Coding\\\\GuruApp\\\\client\" ; npx tsc -b --noEmit 2>&1 ; Write-Host \"EXIT:$LASTEXITCODE\")",
-      "PowerShell(netstat *)"
+      "PowerShell(netstat *)",
+      "Bash(pnpm dev *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Nikhi\\\\Documents\\\\Coding\\\\GuruApp\\\\client\" -Recurse)",
+      "Bash(Select-Object -First 1)",
+      "WebFetch(domain:profile.nextapsolutions.com)",
+      "Bash(npx prisma *)",
+      "Bash(npx tsc *)",
+      "Bash(pnpm add *)",
+      "Bash(node -e \"const m = require\\('./client/node_modules/react-qr-code'\\); console.log\\('default:', typeof m.default\\); console.log\\('keys:', Object.keys\\(m\\)\\)\")"
     ]
   }
 }

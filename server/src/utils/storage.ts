@@ -19,8 +19,14 @@ export async function savePhoto(
   const fullPath = path.join(UPLOAD_DIR, `${name}.webp`);
   const thumbPath = path.join(UPLOAD_DIR, `${name}-thumb.webp`);
 
-  await sharp(buffer).resize(MAX_WIDTH, undefined, { withoutEnlargement: true }).webp().toFile(fullPath);
-  await sharp(buffer).resize(THUMB_WIDTH, undefined, { withoutEnlargement: true }).webp().toFile(thumbPath);
+  await sharp(buffer)
+    .resize(MAX_WIDTH, undefined, { withoutEnlargement: true })
+    .webp()
+    .toFile(fullPath);
+  await sharp(buffer)
+    .resize(THUMB_WIDTH, undefined, { withoutEnlargement: true })
+    .webp()
+    .toFile(thumbPath);
 
   return {
     url: `/uploads/${name}.webp`,

@@ -1,0 +1,5 @@
+{
+  "attempt": 3,
+  "stdout": "Scope: 3 of 4 workspace projects\nserver test$ jest --passWithNoTests \"--if-present\"\nserver test: ● Unrecognized CLI Parameter:\nserver test:   Unrecognized option \"if-present\".\nserver test:   CLI Options Documentation:\nserver test:   https://jestjs.io/docs/cli\nserver test: Failed\nC:\\Users\\Nikhi\\Documents\\Coding\\GuruApp\\server:\r\n[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] server@0.0.1 test: `jest --passWithNoTests \"--if-present\"`\nExit status 1\n",
+  "stderr": ""
+}

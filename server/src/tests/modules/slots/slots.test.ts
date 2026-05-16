@@ -7,7 +7,7 @@ const app = createTestApp();
 const slotDto = { dayOfWeek: 1, startTime: '09:00', endTime: '10:00', slotDurationMins: 60 };
 
 describe('GET /api/gurus/:id/slots (public)', () => {
-  it('returns a guru\'s active slots', async () => {
+  it("returns a guru's active slots", async () => {
     const { user, profile } = await createTestGuru();
     await prisma.availabilitySlot.create({ data: { guruId: profile.id, ...slotDto } });
 
@@ -39,19 +39,25 @@ describe('PUT /api/gurus/me/slots/:slotId', () => {
     const slot = await prisma.availabilitySlot.create({ data: { guruId: profile.id, ...slotDto } });
     const token = makeAccessToken(user.id, user.email);
 
-    const res = await app.put(`/api/gurus/me/slots/${slot.id}`).set(authHeader(token)).send({ isActive: false });
+    const res = await app
+      .put(`/api/gurus/me/slots/${slot.id}`)
+      .set(authHeader(token))
+      .send({ isActive: false });
     expect(res.status).toBe(200);
     expect(res.body.data.isActive).toBe(false);
   });
 
-  it('returns 404 when updating another guru\'s slot', async () => {
+  it("returns 404 when updating another guru's slot", async () => {
     const { profile } = await createTestGuru();
     const slot = await prisma.availabilitySlot.create({ data: { guruId: profile.id, ...slotDto } });
 
     const { user: other } = await createTestGuru({ email: 'other@ex.com' });
     const token = makeAccessToken(other.id, other.email);
 
-    const res = await app.put(`/api/gurus/me/slots/${slot.id}`).set(authHeader(token)).send({ isActive: false });
+    const res = await app
+      .put(`/api/gurus/me/slots/${slot.id}`)
+      .set(authHeader(token))
+      .send({ isActive: false });
     expect(res.status).toBe(404);
   });
 });

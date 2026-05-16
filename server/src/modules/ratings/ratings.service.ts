@@ -10,7 +10,8 @@ export const ratingsService = {
     const booking = await bookingRepository.findById(bookingId);
     if (!booking) throw new AppError('Booking not found', 404, 'NOT_FOUND');
     if (booking.studentId !== studentId) throw new AppError('Forbidden', 403, 'FORBIDDEN');
-    if (booking.status !== 'COMPLETED') throw new AppError('Can only rate completed bookings', 400, 'INVALID_STATUS');
+    if (booking.status !== 'COMPLETED')
+      throw new AppError('Can only rate completed bookings', 400, 'INVALID_STATUS');
 
     const existing = await ratingRepository.findByBookingId(bookingId);
     if (existing) throw new AppError('Already rated this booking', 409, 'ALREADY_RATED');
@@ -19,7 +20,12 @@ export const ratingsService = {
     if (!guruProfile) throw new AppError('Guru profile not found', 404, 'NOT_FOUND');
 
     // Store guruId as the GuruProfile.id for consistency with updateRating and getByGuruId
-    const rating = await ratingRepository.create({ bookingId, studentId, guruId: guruProfile.id, ...dto });
+    const rating = await ratingRepository.create({
+      bookingId,
+      studentId,
+      guruId: guruProfile.id,
+      ...dto,
+    });
     await guruRepository.updateRating(guruProfile.id);
 
     return rating;

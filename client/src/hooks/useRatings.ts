@@ -13,7 +13,11 @@ export function useGuruRatings(guruId: string) {
 export function useCreateRating(bookingId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: CreateRatingDto) => api.post(`/bookings/${bookingId}/rating`, dto).then((r) => r.data.data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['bookings'] }); qc.invalidateQueries({ queryKey: ['ratings'] }); },
+    mutationFn: (dto: CreateRatingDto) =>
+      api.post(`/bookings/${bookingId}/rating`, dto).then((r) => r.data.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['ratings'] });
+    },
   });
 }

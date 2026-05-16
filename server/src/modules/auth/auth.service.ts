@@ -10,8 +10,24 @@ import { prisma } from '../../config/prisma';
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-function toUserDto(user: { id: string; email: string; name: string; avatarUrl: string | null; isGuru: boolean; isStudent: boolean; isAdmin: boolean }) {
-  return { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl, isGuru: user.isGuru, isStudent: user.isStudent, isAdmin: user.isAdmin };
+function toUserDto(user: {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string | null;
+  isGuru: boolean;
+  isStudent: boolean;
+  isAdmin: boolean;
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    avatarUrl: user.avatarUrl,
+    isGuru: user.isGuru,
+    isStudent: user.isStudent,
+    isAdmin: user.isAdmin,
+  };
 }
 
 function makeTokens(userId: string, email: string) {
@@ -26,7 +42,13 @@ export const authService = {
     if (existing) throw new AppError('Email already registered', 409, 'EMAIL_TAKEN');
 
     const passwordHash = await hashPassword(dto.password);
-    const user = await userRepository.create({ email: dto.email, passwordHash, name: dto.name, isGuru: dto.isGuru, isStudent: dto.isStudent });
+    const user = await userRepository.create({
+      email: dto.email,
+      passwordHash,
+      name: dto.name,
+      isGuru: dto.isGuru,
+      isStudent: dto.isStudent,
+    });
     const { accessToken, refreshToken } = makeTokens(user.id, user.email);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await tokenRepository.save(user.id, refreshToken, expiresAt);
@@ -36,14 +58,16 @@ export const authService = {
 
   async login(dto: LoginDto) {
     const user = await userRepository.findByEmail(dto.email);
-    if (!user || !user.isActive) throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+    if (!user || !user.isActive)
+      throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
 
     // Enforce account lockout
     if (user.lockedUntil && user.lockedUntil > new Date()) {
       throw new AppError('Account temporarily locked. Try again later.', 423, 'ACCOUNT_LOCKED');
     }
 
-    if (!user.passwordHash) throw new AppError('This account uses Google sign-in', 401, 'INVALID_CREDENTIALS');
+    if (!user.passwordHash)
+      throw new AppError('This account uses Google sign-in', 401, 'INVALID_CREDENTIALS');
 
     const valid = await comparePassword(dto.password, user.passwordHash);
     if (!valid) {
@@ -52,9 +76,8 @@ export const authService = {
         where: { id: user.id },
         data: {
           failedLoginCount: newCount,
-          lockedUntil: newCount >= MAX_FAILED_ATTEMPTS
-            ? new Date(Date.now() + LOCK_DURATION_MS)
-            : null,
+          lockedUntil:
+            newCount >= MAX_FAILED_ATTEMPTS ? new Date(Date.now() + LOCK_DURATION_MS) : null,
         },
       });
       throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
@@ -97,7 +120,10 @@ export const authService = {
     const oauthClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
     let ticket;
     try {
-      ticket = await oauthClient.verifyIdToken({ idToken: dto.idToken, audience: env.GOOGLE_CLIENT_ID });
+      ticket = await oauthClient.verifyIdToken({
+        idToken: dto.idToken,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
     } catch {
       throw new AppError('Invalid Google ID token', 401, 'INVALID_GOOGLE_TOKEN');
     }
@@ -112,7 +138,8 @@ export const authService = {
     if (!user) {
       const existingByEmail = await userRepository.findByEmail(email);
       if (existingByEmail) {
-        if (!existingByEmail.isActive) throw new AppError('Account is deactivated', 403, 'ACCOUNT_INACTIVE');
+        if (!existingByEmail.isActive)
+          throw new AppError('Account is deactivated', 403, 'ACCOUNT_INACTIVE');
         user = await userRepository.linkGoogleId(existingByEmail.id, googleId, picture);
       } else {
         user = await userRepository.create({

@@ -25,7 +25,9 @@ export function createApp(opts: AppOptions = {}): Express {
   const app = express();
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-  app.use(cors({ origin: process.env['CLIENT_URL'] ?? 'http://localhost:5173', credentials: true }));
+  app.use(
+    cors({ origin: process.env['CLIENT_URL'] ?? 'http://localhost:5173', credentials: true }),
+  );
   app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/api/health' } }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -36,7 +38,12 @@ export function createApp(opts: AppOptions = {}): Express {
 
   if (!opts.skipRateLimiting) {
     app.use(rateLimit({ windowMs: 60_000, max: 200, standardHeaders: true, legacyHeaders: false }));
-    const authLimit = rateLimit({ windowMs: 60_000, max: 10, standardHeaders: true, legacyHeaders: false });
+    const authLimit = rateLimit({
+      windowMs: 60_000,
+      max: 10,
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
     app.use('/api/auth', authLimit);
   }
 

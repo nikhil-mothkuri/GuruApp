@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-export const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'] as const;
+export const ORDER_STATUSES = [
+  'PENDING',
+  'CONFIRMED',
+  'SHIPPED',
+  'DELIVERED',
+  'CANCELLED',
+  'REFUNDED',
+] as const;
 
 export const createOrderSchema = z.object({
   buyerName: z.string().min(1).max(200),

@@ -75,7 +75,9 @@ describe('Account lockout after repeated failed logins', () => {
 describe('httpOnly cookies on auth endpoints', () => {
   it('login sets accessToken and refreshToken as httpOnly cookies', async () => {
     await createTestUser({ email: 'cookie@example.com', password: 'Pass1234!' });
-    const res = await app.post('/api/auth/login').send({ email: 'cookie@example.com', password: 'Pass1234!' });
+    const res = await app
+      .post('/api/auth/login')
+      .send({ email: 'cookie@example.com', password: 'Pass1234!' });
 
     expect(res.status).toBe(200);
     const setCookieHeader = res.headers['set-cookie'] as string[] | string | undefined;
@@ -91,25 +93,38 @@ describe('httpOnly cookies on auth endpoints', () => {
 
   it('signup sets cookies', async () => {
     const res = await app.post('/api/auth/signup').send({
-      email: 'signup-cookie@example.com', name: 'Cookie User',
-      password: 'Pass1234!', isStudent: true, isGuru: false,
+      email: 'signup-cookie@example.com',
+      name: 'Cookie User',
+      password: 'Pass1234!',
+      isStudent: true,
+      isGuru: false,
     });
     expect(res.status).toBe(201);
     const rawCookies = res.headers['set-cookie'];
-    const cookies: string[] = Array.isArray(rawCookies) ? rawCookies : (rawCookies ? [rawCookies] : []);
+    const cookies: string[] = Array.isArray(rawCookies)
+      ? rawCookies
+      : rawCookies
+        ? [rawCookies]
+        : [];
     expect(cookies.some((c) => c.startsWith('accessToken='))).toBe(true);
   });
 
   it('logout clears cookies', async () => {
     await createTestUser({ email: 'logout-cookie@example.com', password: 'Pass1234!' });
-    const loginRes = await app.post('/api/auth/login').send({ email: 'logout-cookie@example.com', password: 'Pass1234!' });
+    const loginRes = await app
+      .post('/api/auth/login')
+      .send({ email: 'logout-cookie@example.com', password: 'Pass1234!' });
     const token = loginRes.body.data.accessToken;
 
     const logoutRes = await app.post('/api/auth/logout').set(authHeader(token));
     expect(logoutRes.status).toBe(204);
 
     const rawLogoutCookies = logoutRes.headers['set-cookie'];
-    const logoutCookies: string[] = Array.isArray(rawLogoutCookies) ? rawLogoutCookies : (rawLogoutCookies ? [rawLogoutCookies] : []);
+    const logoutCookies: string[] = Array.isArray(rawLogoutCookies)
+      ? rawLogoutCookies
+      : rawLogoutCookies
+        ? [rawLogoutCookies]
+        : [];
     const clearedAccess = logoutCookies.find((c) => c.startsWith('accessToken='));
     // Cleared cookies have an empty value or Max-Age=0
     expect(clearedAccess).toBeDefined();

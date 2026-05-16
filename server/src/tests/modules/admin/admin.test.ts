@@ -1,5 +1,10 @@
 import { createTestApp } from '../../helpers/app';
-import { createTestUser, createTestGuru, authHeader, makeAccessToken } from '../../helpers/factories';
+import {
+  createTestUser,
+  createTestGuru,
+  authHeader,
+  makeAccessToken,
+} from '../../helpers/factories';
 
 const app = createTestApp();
 
@@ -47,7 +52,10 @@ describe('PATCH /api/admin/users/:id', () => {
     const user = await createTestUser({ email: 'target@ex.com' });
     const token = makeAccessToken(admin.id, admin.email);
 
-    const res = await app.patch(`/api/admin/users/${user.id}`).set(authHeader(token)).send({ isActive: false });
+    const res = await app
+      .patch(`/api/admin/users/${user.id}`)
+      .set(authHeader(token))
+      .send({ isActive: false });
     expect(res.status).toBe(200);
     expect(res.body.data.isActive).toBe(false);
   });
@@ -57,7 +65,10 @@ describe('PATCH /api/admin/users/:id', () => {
     const user = await createTestUser({ email: 'promo@ex.com' });
     const token = makeAccessToken(admin.id, admin.email);
 
-    const res = await app.patch(`/api/admin/users/${user.id}`).set(authHeader(token)).send({ isGuru: true });
+    const res = await app
+      .patch(`/api/admin/users/${user.id}`)
+      .set(authHeader(token))
+      .send({ isGuru: true });
     expect(res.status).toBe(200);
     expect(res.body.data.isGuru).toBe(true);
   });

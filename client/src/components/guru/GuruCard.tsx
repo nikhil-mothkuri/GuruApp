@@ -21,14 +21,18 @@ export function GuruCard({ guru }: Props) {
   const initial = name[0]?.toUpperCase() ?? '?';
 
   return (
-    <Link
-      to={`/guru/${guru.id}`}
-      className="brand-card block overflow-hidden"
-    >
+    <Link to={`/guru/${guru.id}`} className="brand-card block overflow-hidden">
       <div className="flex items-start gap-3 p-4">
         {/* Avatar */}
         {avatarUrl ? (
-          <img src={avatarUrl} alt={name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" loading="lazy" width={48} height={48} />
+          <img
+            src={avatarUrl}
+            alt={name}
+            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+            loading="lazy"
+            width={48}
+            height={48}
+          />
         ) : (
           <div className="w-12 h-12 rounded-full bg-[#1a73e8] flex items-center justify-center text-white font-medium text-lg flex-shrink-0 select-none">
             {initial}
@@ -39,12 +43,19 @@ export function GuruCard({ guru }: Props) {
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-[#202124] text-sm leading-tight truncate">{name}</h3>
           {guru.tagline && (
-            <p className="text-xs text-[#5f6368] mt-0.5 line-clamp-2 leading-relaxed">{guru.tagline}</p>
+            <p className="text-xs text-[#5f6368] mt-0.5 line-clamp-2 leading-relaxed">
+              {guru.tagline}
+            </p>
           )}
 
           {/* Rating */}
           <div className="flex items-center gap-1 mt-1.5">
-            <Star className={cn('w-3.5 h-3.5', guru.ratingCount > 0 ? 'text-[#fbbc04] fill-[#fbbc04]' : 'text-[#bdc1c6]')} />
+            <Star
+              className={cn(
+                'w-3.5 h-3.5',
+                guru.ratingCount > 0 ? 'text-[#fbbc04] fill-[#fbbc04]' : 'text-[#bdc1c6]',
+              )}
+            />
             <span className="text-xs text-[#202124] font-medium">{guru.ratingAvg.toFixed(1)}</span>
             <span className="text-xs text-[#5f6368]">({guru.ratingCount})</span>
           </div>

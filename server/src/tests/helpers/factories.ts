@@ -15,9 +15,10 @@ interface CreateUserOpts {
 }
 
 export async function createTestUser(opts: CreateUserOpts = {}) {
-  const passwordHash = opts.passwordHash !== undefined
-    ? opts.passwordHash
-    : await hashPassword(opts.password ?? 'Password1!');
+  const passwordHash =
+    opts.passwordHash !== undefined
+      ? opts.passwordHash
+      : await hashPassword(opts.password ?? 'Password1!');
 
   return prisma.user.create({
     data: {
@@ -41,9 +42,16 @@ export async function createTestGuru(opts: CreateUserOpts = {}) {
   return { user, profile };
 }
 
-export async function createActiveProduct(guruProfileId: string, overrides: Partial<{
-  name: string; price: number; stock: number; isDigital: boolean; status: string;
-}> = {}) {
+export async function createActiveProduct(
+  guruProfileId: string,
+  overrides: Partial<{
+    name: string;
+    price: number;
+    stock: number;
+    isDigital: boolean;
+    status: string;
+  }> = {},
+) {
   const name = overrides.name ?? `Product-${Date.now()}`;
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
   return prisma.product.create({

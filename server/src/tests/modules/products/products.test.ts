@@ -1,5 +1,11 @@
 import { createTestApp } from '../../helpers/app';
-import { createTestUser, createTestGuru, createActiveProduct, authHeader, makeAccessToken } from '../../helpers/factories';
+import {
+  createTestUser,
+  createTestGuru,
+  createActiveProduct,
+  authHeader,
+  makeAccessToken,
+} from '../../helpers/factories';
 import { prisma } from '~/config/prisma';
 
 const app = createTestApp();
@@ -8,7 +14,12 @@ describe('GET /api/products (public search)', () => {
   beforeEach(async () => {
     const { user, profile } = await createTestGuru();
     await createActiveProduct(profile.id, { name: 'React Course', price: 49 });
-    await createActiveProduct(profile.id, { name: 'Node.js Guide', price: 29, isDigital: false, stock: 10 });
+    await createActiveProduct(profile.id, {
+      name: 'Node.js Guide',
+      price: 29,
+      isDigital: false,
+      stock: 10,
+    });
     await createActiveProduct(profile.id, { name: 'Draft Item', status: 'DRAFT' });
   });
 
@@ -33,7 +44,9 @@ describe('GET /api/products (public search)', () => {
   it('filters by price range', async () => {
     const res = await app.get('/api/products?minPrice=40&maxPrice=60');
     expect(res.status).toBe(200);
-    expect(res.body.data.every((p: { price: number }) => p.price >= 40 && p.price <= 60)).toBe(true);
+    expect(res.body.data.every((p: { price: number }) => p.price >= 40 && p.price <= 60)).toBe(
+      true,
+    );
   });
 
   it('sorts by price ascending', async () => {
@@ -118,7 +131,17 @@ describe('POST /api/products (guru-only)', () => {
   it('returns 422 for missing name', async () => {
     const { user } = await createTestGuru();
     const token = makeAccessToken(user.id, user.email);
-    const res = await app.post('/api/products').set(authHeader(token)).send({ price: 10, stock: 0, isDigital: true, currency: 'USD', status: 'DRAFT', weightUnit: 'kg', dimensionUnit: 'cm', shippingRequired: true, lowStockThreshold: 5 });
+    const res = await app.post('/api/products').set(authHeader(token)).send({
+      price: 10,
+      stock: 0,
+      isDigital: true,
+      currency: 'USD',
+      status: 'DRAFT',
+      weightUnit: 'kg',
+      dimensionUnit: 'cm',
+      shippingRequired: true,
+      lowStockThreshold: 5,
+    });
     expect(res.status).toBe(422);
   });
 });
@@ -129,19 +152,25 @@ describe('PUT /api/products/:id (guru-only)', () => {
     const product = await createActiveProduct(profile.id, { name: 'Old Name' });
     const token = makeAccessToken(user.id, user.email);
 
-    const res = await app.put(`/api/products/${product.id}`).set(authHeader(token)).send({ name: 'New Name' });
+    const res = await app
+      .put(`/api/products/${product.id}`)
+      .set(authHeader(token))
+      .send({ name: 'New Name' });
     expect(res.status).toBe(200);
     expect(res.body.data.name).toBe('New Name');
   });
 
-  it('returns 404 when updating another guru\'s product', async () => {
+  it("returns 404 when updating another guru's product", async () => {
     const { profile } = await createTestGuru();
     const product = await createActiveProduct(profile.id);
 
     const { user: otherGuru } = await createTestGuru({ email: 'other@example.com' });
     const token = makeAccessToken(otherGuru.id, otherGuru.email);
 
-    const res = await app.put(`/api/products/${product.id}`).set(authHeader(token)).send({ name: 'Steal' });
+    const res = await app
+      .put(`/api/products/${product.id}`)
+      .set(authHeader(token))
+      .send({ name: 'Steal' });
     expect(res.status).toBe(404);
   });
 });
@@ -159,7 +188,7 @@ describe('DELETE /api/products/:id (guru-only)', () => {
     expect(found).toBeNull();
   });
 
-  it('returns 404 when deleting another guru\'s product', async () => {
+  it("returns 404 when deleting another guru's product", async () => {
     const { profile } = await createTestGuru();
     const product = await createActiveProduct(profile.id);
     const { user: other } = await createTestGuru({ email: 'g2@example.com' });

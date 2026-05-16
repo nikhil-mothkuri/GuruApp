@@ -1,1 +1,45 @@
-{"data":[{"id":"cmoyky3xj00055w4g7jxqkp4o","userId":"cmoyky3x700015w4gyfj2g7s7","tagline":"Transform your mind and body through yoga","ratingAvg":4.8,"ratingCount":24,"user":{"id":"cmoyky3x700015w4gyfj2g7s7","name":"Alice Sharma","bio":"Yoga & meditation instructor with 10 years experience.","avatarUrl":null},"skills":[{"id":"cmoyky3xy000d5w4ghrx9xlng","skillName":"Breathing Techniques"},{"id":"cmoyky3xu000b5w4gt7rcog6x","skillName":"Meditation"},{"id":"cmoyky3xr00095w4gjlks6ar8","skillName":"Yoga"}],"photos":[],"videos":[]},{"id":"cmoyky3xn00075w4grcmd0hyt","userId":"cmoyky3xb00025w4ga4o032si","tagline":"Learn piano from beginner to advanced","ratingAvg":4.5,"ratingCount":12,"user":{"id":"cmoyky3xb00025w4ga4o032si","name":"Bob Chen","bio":"Professional piano teacher and music theorist.","avatarUrl":null},"skills":[{"id":"cmoyky3y9000j5w4gg3q0o39m","skillName":"Classical Music"},{"id":"cmoyky3y5000h5w4gninnp29q","skillName":"Music Theory"},{"id":"cmoyky3y2000f5w4gfjbf33bh","skillName":"Piano"}],"photos":[],"videos":[]}],"meta":{"total":2,"page":1,"limit":20,"totalPages":1}}
+{
+  "data": [
+    {
+      "id": "cmoyky3xj00055w4g7jxqkp4o",
+      "userId": "cmoyky3x700015w4gyfj2g7s7",
+      "tagline": "Transform your mind and body through yoga",
+      "ratingAvg": 4.8,
+      "ratingCount": 24,
+      "user": {
+        "id": "cmoyky3x700015w4gyfj2g7s7",
+        "name": "Alice Sharma",
+        "bio": "Yoga & meditation instructor with 10 years experience.",
+        "avatarUrl": null
+      },
+      "skills": [
+        { "id": "cmoyky3xy000d5w4ghrx9xlng", "skillName": "Breathing Techniques" },
+        { "id": "cmoyky3xu000b5w4gt7rcog6x", "skillName": "Meditation" },
+        { "id": "cmoyky3xr00095w4gjlks6ar8", "skillName": "Yoga" }
+      ],
+      "photos": [],
+      "videos": []
+    },
+    {
+      "id": "cmoyky3xn00075w4grcmd0hyt",
+      "userId": "cmoyky3xb00025w4ga4o032si",
+      "tagline": "Learn piano from beginner to advanced",
+      "ratingAvg": 4.5,
+      "ratingCount": 12,
+      "user": {
+        "id": "cmoyky3xb00025w4ga4o032si",
+        "name": "Bob Chen",
+        "bio": "Professional piano teacher and music theorist.",
+        "avatarUrl": null
+      },
+      "skills": [
+        { "id": "cmoyky3y9000j5w4gg3q0o39m", "skillName": "Classical Music" },
+        { "id": "cmoyky3y5000h5w4gninnp29q", "skillName": "Music Theory" },
+        { "id": "cmoyky3y2000f5w4gfjbf33bh", "skillName": "Piano" }
+      ],
+      "photos": [],
+      "videos": []
+    }
+  ],
+  "meta": { "total": 2, "page": 1, "limit": 20, "totalPages": 1 }
+}

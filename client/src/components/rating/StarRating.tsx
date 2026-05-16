@@ -19,7 +19,10 @@ export function StarRating({ value, onChange, readonly = false, size = 'md' }: P
           type="button"
           disabled={readonly}
           onClick={() => onChange?.(star)}
-          className={cn('transition-colors', readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110')}
+          className={cn(
+            'transition-colors',
+            readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110',
+          )}
         >
           <Star
             className={cn(

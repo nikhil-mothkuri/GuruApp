@@ -1,12 +1,24 @@
 import { createTestApp } from '../../helpers/app';
-import { createTestUser, createTestGuru, createCompletedBooking, authHeader, makeAccessToken } from '../../helpers/factories';
+import {
+  createTestUser,
+  createTestGuru,
+  createCompletedBooking,
+  authHeader,
+  makeAccessToken,
+} from '../../helpers/factories';
 import { prisma } from '~/config/prisma';
 
 const app = createTestApp();
 
 async function makeSlot(guruProfileId: string) {
   return prisma.availabilitySlot.create({
-    data: { guruId: guruProfileId, dayOfWeek: 1, startTime: '09:00', endTime: '10:00', slotDurationMins: 60 },
+    data: {
+      guruId: guruProfileId,
+      dayOfWeek: 1,
+      startTime: '09:00',
+      endTime: '10:00',
+      slotDurationMins: 60,
+    },
   });
 }
 
@@ -22,12 +34,15 @@ describe('POST /api/bookings', () => {
     const slot = await makeSlot(profile.id);
     const token = makeAccessToken(student.id, student.email);
 
-    const res = await app.post('/api/bookings').set(authHeader(token)).send({
-      guruId: guruUser.id,
-      slotId: slot.id,
-      type: 'APPOINTMENT',
-      scheduledAt: new Date(Date.now() + 86400000).toISOString(),
-    });
+    const res = await app
+      .post('/api/bookings')
+      .set(authHeader(token))
+      .send({
+        guruId: guruUser.id,
+        slotId: slot.id,
+        type: 'APPOINTMENT',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+      });
     expect(res.status).toBe(201);
     expect(res.body.data.type).toBe('APPOINTMENT');
     expect(res.body.data.status).toBe('PENDING');
@@ -39,12 +54,15 @@ describe('POST /api/bookings', () => {
     const token = makeAccessToken(student.id, student.email);
     const until = new Date(Date.now() + 30 * 86400000).toISOString();
 
-    const res = await app.post('/api/bookings').set(authHeader(token)).send({
-      guruId: guruUser.id,
-      type: 'SUBSCRIPTION',
-      scheduledAt: new Date(Date.now() + 86400000).toISOString(),
-      recurrenceRule: { freq: 'DAILY', until },
-    });
+    const res = await app
+      .post('/api/bookings')
+      .set(authHeader(token))
+      .send({
+        guruId: guruUser.id,
+        type: 'SUBSCRIPTION',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        recurrenceRule: { freq: 'DAILY', until },
+      });
     expect(res.status).toBe(201);
     expect(res.body.data.type).toBe('SUBSCRIPTION');
   });
@@ -54,11 +72,14 @@ describe('POST /api/bookings', () => {
     const { user: guruUser } = await createTestGuru();
     const token = makeAccessToken(student.id, student.email);
 
-    const res = await app.post('/api/bookings').set(authHeader(token)).send({
-      guruId: guruUser.id,
-      type: 'APPOINTMENT',
-      scheduledAt: new Date(Date.now() + 86400000).toISOString(),
-    });
+    const res = await app
+      .post('/api/bookings')
+      .set(authHeader(token))
+      .send({
+        guruId: guruUser.id,
+        type: 'APPOINTMENT',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+      });
     expect(res.status).toBe(422);
   });
 });
@@ -70,10 +91,15 @@ describe('PATCH /api/bookings/:id/cancel', () => {
     const slot = await makeSlot(profile.id);
     const token = makeAccessToken(student.id, student.email);
 
-    const bookingRes = await app.post('/api/bookings').set(authHeader(token)).send({
-      guruId: guruUser.id, slotId: slot.id, type: 'APPOINTMENT',
-      scheduledAt: new Date(Date.now() + 86400000).toISOString(),
-    });
+    const bookingRes = await app
+      .post('/api/bookings')
+      .set(authHeader(token))
+      .send({
+        guruId: guruUser.id,
+        slotId: slot.id,
+        type: 'APPOINTMENT',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+      });
     const bookingId = bookingRes.body.data.id;
 
     const res = await app.patch(`/api/bookings/${bookingId}/cancel`).set(authHeader(token));
@@ -88,13 +114,20 @@ describe('PATCH /api/bookings/:id/cancel', () => {
     const slot = await makeSlot(profile.id);
 
     const studentToken = makeAccessToken(student.id, student.email);
-    const bookingRes = await app.post('/api/bookings').set(authHeader(studentToken)).send({
-      guruId: guruUser.id, slotId: slot.id, type: 'APPOINTMENT',
-      scheduledAt: new Date(Date.now() + 86400000).toISOString(),
-    });
+    const bookingRes = await app
+      .post('/api/bookings')
+      .set(authHeader(studentToken))
+      .send({
+        guruId: guruUser.id,
+        slotId: slot.id,
+        type: 'APPOINTMENT',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+      });
 
     const otherToken = makeAccessToken(other.id, other.email);
-    const res = await app.patch(`/api/bookings/${bookingRes.body.data.id}/cancel`).set(authHeader(otherToken));
+    const res = await app
+      .patch(`/api/bookings/${bookingRes.body.data.id}/cancel`)
+      .set(authHeader(otherToken));
     expect(res.status).toBe(403);
   });
 
@@ -118,7 +151,7 @@ describe('PATCH /api/bookings/:id/cancel', () => {
 });
 
 describe('GET /api/bookings (student view)', () => {
-  it('returns only the authenticated student\'s bookings', async () => {
+  it("returns only the authenticated student's bookings", async () => {
     const student1 = await createTestUser({ isStudent: true });
     const student2 = await createTestUser({ email: 's2@ex.com', isStudent: true });
     const { user: guruUser } = await createTestGuru();
@@ -129,7 +162,9 @@ describe('GET /api/bookings (student view)', () => {
     const token = makeAccessToken(student1.id, student1.email);
     const res = await app.get('/api/bookings').set(authHeader(token));
     expect(res.status).toBe(200);
-    expect(res.body.data.every((b: { studentId: string }) => b.studentId === student1.id)).toBe(true);
+    expect(res.body.data.every((b: { studentId: string }) => b.studentId === student1.id)).toBe(
+      true,
+    );
     expect(res.body.data.length).toBe(1);
   });
 
@@ -162,13 +197,20 @@ describe('GET /api/bookings/guru (guru view)', () => {
     const slot = await makeSlot(profile.id);
     const studentToken = makeAccessToken(student.id, student.email);
 
-    await app.post('/api/bookings').set(authHeader(studentToken)).send({
-      guruId: guruUser.id, slotId: slot.id, type: 'APPOINTMENT',
-      scheduledAt: new Date(Date.now() + 86400000).toISOString(),
-    });
+    await app
+      .post('/api/bookings')
+      .set(authHeader(studentToken))
+      .send({
+        guruId: guruUser.id,
+        slotId: slot.id,
+        type: 'APPOINTMENT',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+      });
 
     const guruToken = makeAccessToken(guruUser.id, guruUser.email);
     const res = await app.get('/api/bookings/guru?filter=upcoming').set(authHeader(guruToken));
-    expect(res.body.data.every((b: { scheduledAt: string }) => new Date(b.scheduledAt) > new Date())).toBe(true);
+    expect(
+      res.body.data.every((b: { scheduledAt: string }) => new Date(b.scheduledAt) > new Date()),
+    ).toBe(true);
   });
 });

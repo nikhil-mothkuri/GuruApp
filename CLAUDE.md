@@ -64,6 +64,7 @@ GuruApp/
 ## Architecture
 
 ### Backend Layer (server/src/)
+
 **Request lifecycle**: `Route → auth middleware → validate(schema) → Controller → Service → Repository → Prisma`
 
 - `modules/*/` — feature folders (auth, users, gurus, slots, bookings, ratings, favorites, admin)
@@ -78,6 +79,7 @@ GuruApp/
 **API response shape**: `{ data: T }` on success · `{ error: { message, code } }` on failure · `{ data: T[], meta: { total, page, limit, totalPages } }` for lists
 
 ### Frontend (client/src/)
+
 - `stores/authStore.ts` — Zustand (auth only); all server state in TanStack Query
 - `services/api.ts` — Axios instance with JWT interceptor + 401 refresh-and-retry
 - `hooks/` — wraps TanStack Query; pages never call `useQuery` directly
@@ -85,28 +87,33 @@ GuruApp/
 - `components/layout/ProtectedRoute.tsx` — redirects unauthenticated or wrong-role users
 
 ### Database (server/prisma/schema.prisma)
+
 SQLite with Prisma. Key tables: `User` (role flags), `GuruProfile`, `GuruSkill`, `GuruPhoto`, `GuruVideo`, `AvailabilitySlot`, `Booking`, `Rating`, `Favorite`, `RefreshToken`.
 
 SQLite notes:
+
 - No native enums — Booking `type`/`status` are `String`, validated by Zod in service layer
 - No JSON columns — `recurrenceRule` stored as serialized JSON string
 - WAL mode enabled at startup for read throughput
 
 ### Booking Types
+
 - **APPOINTMENT**: `type = "APPOINTMENT"`, `slotId` required, `recurrenceRule = null`
 - **SUBSCRIPTION**: `type = "SUBSCRIPTION"`, `slotId = null`, `recurrenceRule = '{"freq":"DAILY","until":"ISO"}'`
 
 ## Seed Accounts (password: `password123`)
-| Email | Role |
-|---|---|
-| admin@guruapp.com | Admin |
-| alice@guruapp.com | Guru |
-| bob@guruapp.com | Guru + Student |
-| student@guruapp.com | Student |
+
+| Email               | Role           |
+| ------------------- | -------------- |
+| admin@guruapp.com   | Admin          |
+| alice@guruapp.com   | Guru           |
+| bob@guruapp.com     | Guru + Student |
+| student@guruapp.com | Student        |
 
 ## Google OAuth Architecture
 
 GuruApp uses the **ID Token verification** flow — no server-side OAuth redirect:
+
 1. Client renders `<GoogleLogin>` from `@react-oauth/google` (wrapped in `GoogleOAuthProvider` in `App.tsx`)
 2. On success, `onSuccess` receives `{ credential: string }` — this IS the Google ID token (signed JWT)
 3. Frontend posts `{ idToken }` to `POST /api/auth/google`
@@ -116,6 +123,7 @@ GuruApp uses the **ID Token verification** flow — no server-side OAuth redirec
 7. Frontend calls `setAuth(data)` — identical Zustand flow to password login
 
 **Key env vars:**
+
 - Server: `GOOGLE_CLIENT_ID` (required in `config/env.ts` Zod schema)
 - Client: `VITE_GOOGLE_CLIENT_ID` (in `client/.env`, Vite only exposes `VITE_`-prefixed vars)
 
@@ -126,12 +134,14 @@ GuruApp uses the **ID Token verification** flow — no server-side OAuth redirec
 **`GoogleAuthButton`** (`client/src/components/ui/GoogleAuthButton.tsx`) is self-contained — it owns the mutation and error display. Login/Signup pages only pass an `onSuccess` callback.
 
 ## Environment
+
 Copy `server/.env.example` → `server/.env` and fill in JWT secrets (min 32 chars) and `GOOGLE_CLIENT_ID`.
 Copy `client/.env.example` → `client/.env` and fill in `VITE_GOOGLE_CLIENT_ID`.
 
 To get a Client ID: Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID (Web application). Add `http://localhost:5173` to Authorized JavaScript origins.
 
 ## Key Constraints
+
 - `shared/` must be built (`npm run build`) before the server can import from `@guruapp/shared`
 - SQLite `createMany` does not support `skipDuplicates` — use per-item upserts instead
 - `req.params` and `req.query` values must be cast as `req.params['key'] as string` to satisfy `strict: true`
