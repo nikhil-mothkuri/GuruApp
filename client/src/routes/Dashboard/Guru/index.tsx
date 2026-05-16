@@ -63,14 +63,26 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   return { value, label: `${displayH}:${m} ${period}` };
 });
 
-const DURATIONS: { mins: number; label: string }[] = [
-  { mins: 15, label: '15 min' },
-  { mins: 30, label: '30 min' },
-  { mins: 45, label: '45 min' },
-  { mins: 60, label: '1 hr' },
-  { mins: 90, label: '1.5 hrs' },
-  { mins: 120, label: '2 hrs' },
-];
+const formatDuration = (mins: number) => {
+  if (mins <= 0) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} hr`;
+  return `${h} hr ${m} min`;
+};
+
+// 15-min increments from 15 min → 8 hr (32 options)
+const DURATION_OPTIONS = Array.from({ length: 32 }, (_, i) => {
+  const mins = (i + 1) * 15;
+  return { mins, label: formatDuration(mins) };
+});
+
+const computeDurationMins = (start: string, end: string) => {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  return (eh * 60 + em) - (sh * 60 + sm);
+};
 
 const formatLocalTime = (dateTime: string | Date) => {
   const date = new Date(dateTime);
@@ -231,13 +243,12 @@ export default function GuruDashboard() {
           setSlotSaving(false);
           return;
         }
-        const computedEnd = addMinutes(slotStart, slotDuration);
         for (const day of Array.from(selectedDays).sort()) {
           await createSlot.mutateAsync({
             mode: 'WEEKLY',
             dayOfWeek: day,
             startTime: slotStart,
-            endTime: computedEnd,
+            endTime: slotEnd,
             slotDurationMins: slotDuration,
           });
         }
@@ -253,7 +264,7 @@ export default function GuruDashboard() {
           mode: 'ONE_TIME',
           date: iso,
           startTime: slotStart,
-          endTime: addMinutes(slotStart, slotDuration),
+          endTime: slotEnd,
           slotDurationMins: slotDuration,
         });
         setOneTimeDate('');
@@ -270,7 +281,7 @@ export default function GuruDashboard() {
           startDate: startIso,
           endDate: endIso,
           startTime: slotStart,
-          endTime: addMinutes(slotStart, slotDuration),
+          endTime: slotEnd,
           slotDurationMins: slotDuration,
         });
         setRangeStartDate('');
@@ -769,7 +780,7 @@ export default function GuruDashboard() {
               try {
                 const dto: Record<string, unknown> = {
                   startTime: editStart,
-                  endTime: addMinutes(editStart, editDuration),
+                  endTime: editEnd,
                   slotDurationMins: editDuration,
                 };
                 if (slot.dayOfWeek != null) dto.dayOfWeek = editDayOfWeek;
@@ -832,7 +843,7 @@ export default function GuruDashboard() {
                                 <div className="min-w-0">
                                   <p className="text-sm font-semibold text-[#202124] truncate">{slotLabel(slot)}</p>
                                   <p className="text-xs text-[#5f6368] mt-0.5">
-                                    {slot.startTime} – {slot.endTime} · {DURATIONS.find((d) => d.mins === slot.slotDurationMins)?.label ?? `${slot.slotDurationMins}m`}
+                                    {slot.startTime} – {slot.endTime} · {formatDuration(slot.slotDurationMins)}
                                     {!slot.isActive && <span className="ml-2 text-[#d93025]">Inactive</span>}
                                   </p>
                                 </div>
@@ -897,34 +908,37 @@ export default function GuruDashboard() {
                                   </div>
                                 )}
 
-                                {/* Start time + computed end */}
+                                {/* Start / End time — bidirectional */}
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Start time</label>
-                                    <select value={editStart} onChange={(e) => setEditStart(e.target.value)}
+                                    <select value={editStart}
+                                      onChange={(e) => { setEditStart(e.target.value); setEditEnd(addMinutes(e.target.value, editDuration)); }}
                                       className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
                                       {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                     </select>
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Ends at</label>
-                                    <div className="w-full border border-[#e8eaed] rounded-lg px-3 py-2 text-sm text-[#5f6368] bg-[#f8f9fa]">
-                                      {TIME_OPTIONS.find((o) => o.value === addMinutes(editStart, editDuration))?.label ?? addMinutes(editStart, editDuration)}
-                                    </div>
+                                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">End time</label>
+                                    <select value={editEnd}
+                                      onChange={(e) => { const d = computeDurationMins(editStart, e.target.value); if (d > 0) { setEditEnd(e.target.value); setEditDuration(d); } }}
+                                      className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
+                                      {TIME_OPTIONS.filter((o) => o.value > editStart).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    </select>
                                   </div>
                                 </div>
 
-                                {/* Duration */}
+                                {/* Duration — scrollable select */}
                                 <div>
-                                  <p className="text-xs font-semibold text-[#5f6368] mb-2">Session duration</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {DURATIONS.map((d) => (
-                                      <button key={d.mins} type="button" onClick={() => setEditDuration(d.mins)}
-                                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${editDuration === d.mins ? 'border-[#1a73e8] bg-[#e8f0fe] text-[#1a73e8]' : 'border-[#dadce0] text-[#5f6368] hover:border-[#aaa]'}`}>
-                                        {d.label}
-                                      </button>
-                                    ))}
-                                  </div>
+                                  <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Session duration</label>
+                                  <select value={editDuration}
+                                    onChange={(e) => { const d = Number(e.target.value); setEditDuration(d); setEditEnd(addMinutes(editStart, d)); }}
+                                    className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
+                                    {DURATION_OPTIONS.map((d) => <option key={d.mins} value={d.mins}>{d.label}</option>)}
+                                    {!DURATION_OPTIONS.find((d) => d.mins === editDuration) && (
+                                      <option value={editDuration}>{formatDuration(editDuration)}</option>
+                                    )}
+                                  </select>
                                 </div>
 
                                 <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#e8eaed]">
@@ -1006,35 +1020,38 @@ export default function GuruDashboard() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">Start time</label>
-                          <select value={slotStart} onChange={(e) => setSlotStart(e.target.value)}
+                          <select value={slotStart}
+                            onChange={(e) => { setSlotStart(e.target.value); setSlotEnd(addMinutes(e.target.value, slotDuration)); }}
                             className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
                             {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">Ends at</label>
-                          <div className="w-full border border-[#e8eaed] rounded-lg px-3 py-2.5 text-sm text-[#5f6368] bg-[#f8f9fa]">
-                            {TIME_OPTIONS.find((o) => o.value === addMinutes(slotStart, slotDuration))?.label ?? addMinutes(slotStart, slotDuration)}
-                          </div>
+                          <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">End time</label>
+                          <select value={slotEnd}
+                            onChange={(e) => { const d = computeDurationMins(slotStart, e.target.value); if (d > 0) { setSlotEnd(e.target.value); setSlotDuration(d); } }}
+                            className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
+                            {TIME_OPTIONS.filter((o) => o.value > slotStart).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
                         </div>
                       </div>
 
                       <div>
-                        <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">Session duration</p>
-                        <div className="flex flex-wrap gap-2">
-                          {DURATIONS.map((d) => (
-                            <button key={d.mins} type="button" onClick={() => setSlotDuration(d.mins)}
-                              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${slotDuration === d.mins ? 'border-[#1a73e8] bg-[#e8f0fe] text-[#1a73e8]' : 'border-[#dadce0] text-[#5f6368] hover:border-[#aaa]'}`}>
-                              {d.label}
-                            </button>
-                          ))}
-                        </div>
+                        <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">Session duration</label>
+                        <select value={slotDuration}
+                          onChange={(e) => { const d = Number(e.target.value); setSlotDuration(d); setSlotEnd(addMinutes(slotStart, d)); }}
+                          className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
+                          {DURATION_OPTIONS.map((d) => <option key={d.mins} value={d.mins}>{d.label}</option>)}
+                          {!DURATION_OPTIONS.find((d) => d.mins === slotDuration) && (
+                            <option value={slotDuration}>{formatDuration(slotDuration)}</option>
+                          )}
+                        </select>
                       </div>
 
                       {selectedDays.size > 0 && slotMode === 'WEEKLY' && (
                         <div className="px-4 py-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl text-sm text-[#166534]">
                           <p className="font-medium mb-0.5">Summary</p>
-                          <p className="text-xs">Every <strong>{summaryDays}</strong> · {startLabel} – {endLabel} · {DURATIONS.find((d) => d.mins === slotDuration)?.label}</p>
+                          <p className="text-xs">Every <strong>{summaryDays}</strong> · {startLabel} – {TIME_OPTIONS.find((o) => o.value === slotEnd)?.label ?? slotEnd} · {formatDuration(slotDuration)}</p>
                           <p className="text-xs mt-1 text-[#14532d]">Creates {selectedDays.size} slot{selectedDays.size !== 1 ? 's' : ''}</p>
                         </div>
                       )}
