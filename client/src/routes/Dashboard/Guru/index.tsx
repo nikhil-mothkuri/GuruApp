@@ -908,15 +908,13 @@ export default function GuruDashboard() {
                                   </div>
                                 )}
 
-                                {/* Start / End time — bidirectional */}
+                                {/* Start / End time — both time inputs */}
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Start time</label>
-                                    <select value={editStart}
+                                    <input type="time" value={editStart}
                                       onChange={(e) => { setEditStart(e.target.value); setEditEnd(addMinutes(e.target.value, editDuration)); }}
-                                      className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
-                                      {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                    </select>
+                                      className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8]" />
                                   </div>
                                   <div>
                                     <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">End time</label>
@@ -926,17 +924,24 @@ export default function GuruDashboard() {
                                   </div>
                                 </div>
 
-                                {/* Duration — scrollable select */}
+                                {/* Duration — stepper */}
                                 <div>
                                   <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Session duration</label>
-                                  <select value={editDuration}
-                                    onChange={(e) => { const d = Number(e.target.value); setEditDuration(d); setEditEnd(addMinutes(editStart, d)); }}
-                                    className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
-                                    {DURATION_OPTIONS.map((d) => <option key={d.mins} value={d.mins}>{d.label}</option>)}
-                                    {!DURATION_OPTIONS.find((d) => d.mins === editDuration) && (
-                                      <option value={editDuration}>{formatDuration(editDuration)}</option>
-                                    )}
-                                  </select>
+                                  <div className="flex items-center gap-3">
+                                    <button type="button"
+                                      onClick={() => { const d = Math.max(15, editDuration - 15); setEditDuration(d); setEditEnd(addMinutes(editStart, d)); }}
+                                      className="w-9 h-9 rounded-full border border-[#dadce0] flex items-center justify-center text-[#5f6368] hover:bg-[#e8f0fe] hover:border-[#1a73e8] hover:text-[#1a73e8] transition-colors text-lg font-medium select-none">
+                                      −
+                                    </button>
+                                    <span className="flex-1 text-center text-sm font-semibold text-[#202124] bg-[#f8f9fa] border border-[#e8eaed] rounded-lg px-3 py-2">
+                                      {formatDuration(editDuration)}
+                                    </span>
+                                    <button type="button"
+                                      onClick={() => { const d = Math.min(480, editDuration + 15); setEditDuration(d); setEditEnd(addMinutes(editStart, d)); }}
+                                      className="w-9 h-9 rounded-full border border-[#dadce0] flex items-center justify-center text-[#5f6368] hover:bg-[#e8f0fe] hover:border-[#1a73e8] hover:text-[#1a73e8] transition-colors text-lg font-medium select-none">
+                                      +
+                                    </button>
+                                  </div>
                                 </div>
 
                                 <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#e8eaed]">
@@ -1018,11 +1023,9 @@ export default function GuruDashboard() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">Start time</label>
-                          <select value={slotStart}
+                          <input type="time" value={slotStart}
                             onChange={(e) => { setSlotStart(e.target.value); setSlotEnd(addMinutes(e.target.value, slotDuration)); }}
-                            className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
-                            {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
+                            className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8]" />
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">End time</label>
@@ -1034,20 +1037,27 @@ export default function GuruDashboard() {
 
                       <div>
                         <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">Session duration</label>
-                        <select value={slotDuration}
-                          onChange={(e) => { const d = Number(e.target.value); setSlotDuration(d); setSlotEnd(addMinutes(slotStart, d)); }}
-                          className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
-                          {DURATION_OPTIONS.map((d) => <option key={d.mins} value={d.mins}>{d.label}</option>)}
-                          {!DURATION_OPTIONS.find((d) => d.mins === slotDuration) && (
-                            <option value={slotDuration}>{formatDuration(slotDuration)}</option>
-                          )}
-                        </select>
+                        <div className="flex items-center gap-3">
+                          <button type="button"
+                            onClick={() => { const d = Math.max(15, slotDuration - 15); setSlotDuration(d); setSlotEnd(addMinutes(slotStart, d)); }}
+                            className="w-10 h-10 rounded-full border border-[#dadce0] flex items-center justify-center text-[#5f6368] hover:bg-[#e8f0fe] hover:border-[#1a73e8] hover:text-[#1a73e8] transition-colors text-xl font-medium select-none">
+                            −
+                          </button>
+                          <span className="flex-1 text-center text-sm font-semibold text-[#202124] bg-[#f8f9fa] border border-[#e8eaed] rounded-lg px-3 py-2.5">
+                            {formatDuration(slotDuration)}
+                          </span>
+                          <button type="button"
+                            onClick={() => { const d = Math.min(480, slotDuration + 15); setSlotDuration(d); setSlotEnd(addMinutes(slotStart, d)); }}
+                            className="w-10 h-10 rounded-full border border-[#dadce0] flex items-center justify-center text-[#5f6368] hover:bg-[#e8f0fe] hover:border-[#1a73e8] hover:text-[#1a73e8] transition-colors text-xl font-medium select-none">
+                            +
+                          </button>
+                        </div>
                       </div>
 
                       {selectedDays.size > 0 && slotMode === 'WEEKLY' && (
                         <div className="px-4 py-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl text-sm text-[#166534]">
                           <p className="font-medium mb-0.5">Summary</p>
-                          <p className="text-xs">Every <strong>{summaryDays}</strong> · {startLabel} – {TIME_OPTIONS.find((o) => o.value === slotEnd)?.label ?? slotEnd} · {formatDuration(slotDuration)}</p>
+                          <p className="text-xs">Every <strong>{summaryDays}</strong> · {slotStart} – {slotEnd} · {formatDuration(slotDuration)}</p>
                           <p className="text-xs mt-1 text-[#14532d]">Creates {selectedDays.size} slot{selectedDays.size !== 1 ? 's' : ''}</p>
                         </div>
                       )}
