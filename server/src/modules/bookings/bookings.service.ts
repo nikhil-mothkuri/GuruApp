@@ -1,5 +1,6 @@
 import { CreateBookingDto } from '@guruapp/shared';
 import { bookingRepository } from '../../repositories/booking.repository';
+import { guruRepository } from '../../repositories/guru.repository';
 import { AppError } from '../../utils/appError';
 
 export const bookingsService = {
@@ -12,6 +13,12 @@ export const bookingsService = {
   },
 
   async create(studentId: string, dto: CreateBookingDto) {
+    // dto.guruId may be a GuruProfile.id (from the public profile URL) or a User.id.
+    // Resolve to User.id either way before checking for self-booking.
+    const guruProfile = await guruRepository.findById(dto.guruId);
+    const guruUserId = guruProfile?.userId ?? dto.guruId;
+    if (studentId === guruUserId)
+      throw new AppError('You cannot book a session with yourself.', 400, 'SELF_BOOKING');
     const recurrenceRule = dto.recurrenceRule ? JSON.stringify(dto.recurrenceRule) : undefined;
     return bookingRepository.create({
       studentId,

@@ -122,6 +122,7 @@ export default function GuruProfile() {
   const [inqSent, setInqSent] = useState(false);
 
   const isFavorited = favorites?.some((f: { userId: string }) => f.userId === id);
+  const isOwnProfile = !!user && !!guru?.user?.id && user.id === guru.user.id;
 
   if (isLoading)
     return (
@@ -266,7 +267,9 @@ export default function GuruProfile() {
               <p className="text-xs text-[#3c4043]">Subscribe for daily access</p>
             </div>
           </div>
-          {user ? (
+          {isOwnProfile ? (
+            <span className="text-xs text-[#5f6368] italic flex-shrink-0">Your profile</span>
+          ) : user ? (
             <button onClick={() => setShowSubscribe(true)} className="text-xs bg-[#1a73e8] text-white px-3 py-1.5 rounded-full hover:bg-[#1557b0] font-semibold flex-shrink-0">
               Subscribe
             </button>
@@ -290,7 +293,7 @@ export default function GuruProfile() {
                   {slot.startTime} – {slot.endTime} · {slot.slotDurationMins < 60 ? `${slot.slotDurationMins}m` : `${slot.slotDurationMins / 60}h`}
                 </p>
               </div>
-              {user ? (
+              {isOwnProfile ? null : user ? (
                 <button onClick={() => setBookingSlot(slot)} className="text-xs bg-[#1a73e8] text-white px-3 py-1.5 rounded-full hover:bg-[#1557b0] font-semibold">Book</button>
               ) : (
                 <Link to="/login" className="text-xs bg-[#1a73e8] text-white px-3 py-1.5 rounded-full hover:bg-[#1557b0] font-semibold">Sign in</Link>
@@ -611,10 +614,10 @@ export default function GuruProfile() {
         </div>
       </div>
 
-      {bookingSlot && (
+      {bookingSlot && !isOwnProfile && (
         <BookingModal guruId={id!} guruName={guru.user?.name ?? ''} slot={bookingSlot} onClose={() => setBookingSlot(null)} />
       )}
-      {showSubscribe && (
+      {showSubscribe && !isOwnProfile && (
         <BookingModal guruId={id!} guruName={guru.user?.name ?? ''} subscriptionOnly onClose={() => setShowSubscribe(false)} />
       )}
     </div>
