@@ -335,7 +335,7 @@ export default function GuruProfile() {
         </div>
 
         {/* ── HERO INFO (name, bio, contact) ── */}
-        <div className="bg-white border-b border-[#e0e0e0] shadow-sm">
+        <div className="relative z-10 bg-white border-b border-[#e0e0e0] shadow-sm">
           <div className="max-w-6xl mx-auto px-4 md:px-8 pb-6">
             {/* Avatar + name row */}
             <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-14 md:-mt-16 mb-4">
