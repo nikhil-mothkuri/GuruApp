@@ -1,7 +1,8 @@
-import { UpdateGuruProfileDto, AddSkillDto, AddVideoDto, GuruSearchQuery } from '@guruapp/shared';
+import { UpdateGuruProfileDto, AddSkillDto, AddVideoDto, GuruSearchQuery, SubmitInquiryDto } from '@guruapp/shared';
 import { guruRepository } from '../../repositories/guru.repository';
 import { savePhoto, deleteFile } from '../../utils/storage';
 import { AppError } from '../../utils/appError';
+import { sendInquiryEmail } from '../../utils/email';
 
 export const gurusService = {
   async search(query: GuruSearchQuery) {
@@ -9,7 +10,12 @@ export const gurusService = {
     const { items, total } = await guruRepository.search(query.q, query.skill, skip, query.limit);
     return {
       data: items,
-      meta: { total, page: query.page, limit: query.limit, totalPages: Math.ceil(total / query.limit) },
+      meta: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      },
     };
   },
 
@@ -59,7 +65,9 @@ export const gurusService = {
     const profile = await guruRepository.findByUserId(userId);
     if (!profile) throw new AppError('Guru profile not found', 404, 'NOT_FOUND');
     const thumbId = dto.youtubeUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1];
-    const thumbnailUrl = thumbId ? `https://img.youtube.com/vi/${thumbId}/hqdefault.jpg` : undefined;
+    const thumbnailUrl = thumbId
+      ? `https://img.youtube.com/vi/${thumbId}/hqdefault.jpg`
+      : undefined;
     return guruRepository.addVideo(profile.id, dto.youtubeUrl, dto.title, thumbnailUrl);
   },
 
@@ -67,6 +75,28 @@ export const gurusService = {
     const profile = await guruRepository.findByUserId(userId);
     if (!profile) throw new AppError('Guru profile not found', 404, 'NOT_FOUND');
     await guruRepository.deleteVideo(videoId, profile.id);
+  },
+
+  async uploadBanner(userId: string, buffer: Buffer, originalname: string) {
+    const { url } = await savePhoto(buffer, originalname);
+    return guruRepository.setBanner(userId, url);
+  },
+
+  async submitInquiry(guruId: string, dto: SubmitInquiryDto) {
+    const inquiry = await guruRepository.createInquiry(guruId, dto);
+    const contact = await guruRepository.findGuruContactEmail(guruId);
+    const toEmail = contact?.contactEmail ?? contact?.user?.email;
+    if (toEmail) {
+      await sendInquiryEmail({
+        toEmail,
+        toName: contact?.user?.name ?? 'Guru',
+        fromName: dto.name,
+        fromEmail: dto.email,
+        phone: dto.phone,
+        message: dto.message,
+      });
+    }
+    return inquiry;
   },
 
   async suggestions(q: string) {

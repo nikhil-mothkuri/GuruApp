@@ -3,7 +3,24 @@ import { z } from 'zod';
 export const updateGuruProfileSchema = z.object({
   tagline: z.string().max(200).optional(),
   bio: z.string().max(1000).optional(),
+  about: z.string().max(2000).optional(),
+  contactEmail: z.string().email().optional().or(z.literal('')),
+  contactPhone: z.string().max(30).optional(),
+  alternatePhone: z.string().max(30).optional(),
+  address: z.string().max(300).optional(),
+  businessHours: z.string().optional(),
+  websiteUrl: z.string().url().optional().or(z.literal('')),
+  whatsappNumber: z.string().max(30).optional(),
 });
+
+export const submitInquirySchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  phone: z.string().max(30).optional(),
+  message: z.string().min(1).max(2000),
+});
+
+export type SubmitInquiryDto = z.infer<typeof submitInquirySchema>;
 
 export type UpdateGuruProfileDto = z.infer<typeof updateGuruProfileSchema>;
 
@@ -69,7 +86,16 @@ export const guruDetailSchema = z.object({
   name: z.string(),
   bio: z.string().nullable(),
   avatarUrl: z.string().nullable(),
+  bannerUrl: z.string().nullable(),
   tagline: z.string().nullable(),
+  about: z.string().nullable(),
+  contactEmail: z.string().nullable(),
+  contactPhone: z.string().nullable(),
+  alternatePhone: z.string().nullable(),
+  address: z.string().nullable(),
+  businessHours: z.string().nullable(),
+  websiteUrl: z.string().nullable(),
+  whatsappNumber: z.string().nullable(),
   ratingAvg: z.number(),
   ratingCount: z.number(),
   skills: z.array(guruSkillSchema),

@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
-import type { GuruSearchQuery, UpdateGuruProfileDto, AddSkillDto, AddVideoDto } from '@guruapp/shared';
+import type {
+  GuruSearchQuery,
+  UpdateGuruProfileDto,
+  AddSkillDto,
+  AddVideoDto,
+} from '@guruapp/shared';
 
 export function useGuruSearch(params: Partial<GuruSearchQuery>) {
   return useQuery({
@@ -28,7 +33,8 @@ export function useMyGuruProfile() {
 export function useUpdateGuruProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: UpdateGuruProfileDto) => api.put('/gurus/me/profile', dto).then((r) => r.data.data),
+    mutationFn: (dto: UpdateGuruProfileDto) =>
+      api.put('/gurus/me/profile', dto).then((r) => r.data.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['gurus', 'me'] }),
   });
 }
@@ -65,13 +71,44 @@ export function useDeleteVideo() {
   });
 }
 
+export function useDeletePhoto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (photoId: string) => api.delete(`/gurus/me/photos/${photoId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['gurus', 'me'] }),
+  });
+}
+
+export function useUploadBanner() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const fd = new FormData();
+      fd.append('banner', file);
+      return api.post('/gurus/me/banner', fd).then((r) => r.data.data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['gurus', 'me'] }),
+  });
+}
+
+export function useSubmitInquiry(guruId: string) {
+  return useMutation({
+    mutationFn: (dto: { name: string; email: string; phone?: string; message: string }) =>
+      api.post(`/gurus/${guruId}/inquire`, dto).then((r) => r.data.data),
+  });
+}
+
 export function useGuruSuggestions(q: string) {
   return useQuery({
     queryKey: ['gurus', 'suggestions', q],
-    queryFn: () => api.get('/gurus/suggestions', { params: { q } }).then((r) => r.data.data as {
-      names: { id: string; user: { name: string; avatarUrl: string | null } }[];
-      skills: string[];
-    }),
+    queryFn: () =>
+      api.get('/gurus/suggestions', { params: { q } }).then(
+        (r) =>
+          r.data.data as {
+            names: { id: string; user: { name: string; avatarUrl: string | null } }[];
+            skills: string[];
+          },
+      ),
     enabled: q.length >= 1,
     staleTime: 30_000,
   });

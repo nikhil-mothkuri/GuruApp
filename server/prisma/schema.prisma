@@ -37,12 +37,21 @@ model User {
 }
 
 model GuruProfile {
-  id          String  @id @default(cuid())
-  userId      String  @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tagline     String?
-  ratingAvg   Float   @default(0)
-  ratingCount Int     @default(0)
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagline        String?
+  about          String?
+  bannerUrl      String?
+  contactEmail   String?
+  contactPhone   String?
+  alternatePhone String?
+  address        String?
+  businessHours  String?
+  websiteUrl     String?
+  whatsappNumber String?
+  ratingAvg      Float   @default(0)
+  ratingCount    Int     @default(0)
 
   skills    GuruSkill[]
   photos    GuruPhoto[]
@@ -50,6 +59,20 @@ model GuruProfile {
   slots     AvailabilitySlot[]
   favorites Favorite[]
   products  Product[]
+  inquiries Inquiry[]
+}
+
+model Inquiry {
+  id        String      @id @default(cuid())
+  guruId    String
+  guru      GuruProfile @relation(fields: [guruId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  phone     String?
+  message   String
+  createdAt DateTime    @default(now())
+
+  @@index([guruId])
 }
 
 model GuruSkill {
@@ -84,9 +107,16 @@ model AvailabilitySlot {
   id               String      @id @default(cuid())
   guruId           String
   guru             GuruProfile @relation(fields: [guruId], references: [id], onDelete: Cascade)
-  dayOfWeek        Int
-  startTime        String
-  endTime          String
+  dayOfWeek        Int?
+  // One-time slot timestamp
+  date             DateTime?
+  // Range-based daily sessions
+  startDate        DateTime?
+  endDate          DateTime?
+  // Serialized recurrence rule (e.g. JSON string like bookings.recurrenceRule)
+  recurrenceRule   String?
+  startTime        String?
+  endTime          String?
   slotDurationMins Int         @default(60)
   isActive         Boolean     @default(true)
   bookings         Booking[]
