@@ -243,18 +243,16 @@ export default function GuruDashboard() {
         setSelectedDays(new Set());
       } else if (slotMode === 'ONE_TIME') {
         if (!oneTimeDate) {
-          setSlotError('Select a date/time');
+          setSlotError('Select a date');
           setSlotSaving(false);
           return;
         }
         const iso = new Date(oneTimeDate).toISOString();
-        const startTime = formatLocalTime(oneTimeDate);
-        const endTime = addMinutes(startTime, slotDuration);
         await createSlot.mutateAsync({
           mode: 'ONE_TIME',
           date: iso,
-          startTime,
-          endTime,
+          startTime: slotStart,
+          endTime: slotEnd,
           slotDurationMins: slotDuration,
         });
         setOneTimeDate('');
@@ -880,8 +878,8 @@ export default function GuruDashboard() {
                                 {/* Date — one-time only */}
                                 {slot.date && (
                                   <div>
-                                    <p className="text-xs font-semibold text-[#5f6368] mb-2">Date & time</p>
-                                    <input type="datetime-local" value={editDate} onChange={(e) => setEditDate(e.target.value)}
+                                    <p className="text-xs font-semibold text-[#5f6368] mb-2">Date</p>
+                                    <input type="date" value={editDate.slice(0, 10)} onChange={(e) => setEditDate(e.target.value)}
                                       className="border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] w-full" />
                                   </div>
                                 )}
@@ -990,8 +988,8 @@ export default function GuruDashboard() {
                       )}
                       {slotMode === 'ONE_TIME' && (
                         <div>
-                          <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">Date & time</p>
-                          <input type="datetime-local" value={oneTimeDate} onChange={(e) => setOneTimeDate(e.target.value)}
+                          <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">Date</p>
+                          <input type="date" value={oneTimeDate} onChange={(e) => setOneTimeDate(e.target.value)}
                             className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8]" />
                         </div>
                       )}
