@@ -11,7 +11,7 @@ import {
   useUploadSkillImage,
 } from '@/hooks/useGurus';
 import { useGuruBookings } from '@/hooks/useBookings';
-import { useMySlots, useCreateSlot, useDeleteSlot } from '@/hooks/useSlots';
+import { useMySlots, useCreateSlot, useUpdateSlot, useDeleteSlot } from '@/hooks/useSlots';
 import { useAuth } from '@/hooks/useAuth';
 import { StarRating } from '@/components/rating/StarRating';
 import { formatDateTime } from '@/lib/utils';
@@ -35,6 +35,7 @@ import {
   ImageIcon,
   Save,
   CheckCircle,
+  Pencil,
 } from 'lucide-react';
 import type { Booking } from '@guruapp/shared';
 import type { AvailabilitySlot } from '@guruapp/shared';
@@ -104,6 +105,7 @@ export default function GuruDashboard() {
   const addVideo = useAddVideo();
   const deleteVideo = useDeleteVideo();
   const createSlot = useCreateSlot();
+  const updateSlot = useUpdateSlot();
   const deleteSlot = useDeleteSlot();
 
   const [tab, setTab] = useState<'profile' | 'availability' | 'bookings'>('profile');
@@ -157,6 +159,17 @@ export default function GuruDashboard() {
   const [rangeEndDate, setRangeEndDate] = useState('');
   const [slotSaving, setSlotSaving] = useState(false);
   const [slotError, setSlotError] = useState('');
+
+  // Inline slot editing
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
+  const [editStart, setEditStart] = useState('09:00');
+  const [editEnd, setEditEnd] = useState('10:00');
+  const [editDuration, setEditDuration] = useState(60);
+  const [editDayOfWeek, setEditDayOfWeek] = useState(0);
+  const [editDate, setEditDate] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   if (isLoading)
     return (
@@ -721,396 +734,338 @@ export default function GuruDashboard() {
           )}
 
           {/* Availability tab */}
-          {tab === 'availability' &&
-            (() => {
-              const allSlots = (slots as AvailabilitySlot[]) ?? [];
-              const weeklySlots = allSlots.filter(
-                (s) => s.dayOfWeek !== null && s.dayOfWeek !== undefined,
-              );
-              const oneTimeSlots = allSlots.filter((s) => s.date && s.dayOfWeek == null);
-              const dailyRangeSlots = allSlots.filter(
-                (s) => s.startDate && s.endDate && s.dayOfWeek == null,
-              );
-              const slotsByDay = Array.from({ length: 7 }, (_, i) =>
-                weeklySlots.filter((s) => s.dayOfWeek === i),
-              );
-              const startLabel =
-                TIME_OPTIONS.find((o) => o.value === slotStart)?.label ?? slotStart;
-              const endLabel = TIME_OPTIONS.find((o) => o.value === slotEnd)?.label ?? slotEnd;
-              const summaryDays = Array.from(selectedDays)
-                .sort()
-                .map((d) => DAY_FULL[d])
-                .join(', ');
-              return (
-                <div className="space-y-5">
-                  {/* Info banner */}
-                  <div className="bg-[#e8f0fe] rounded-xl p-4 border border-[#c5d8fd]">
-                    <p className="font-semibold text-[#1a73e8] text-sm mb-1">
-                      How your availability works
-                    </p>
-                    <p className="text-xs text-[#3c4043] leading-relaxed">
-                      Set the recurring weekly windows when students can book one-time appointments
-                      with you. Students pick any upcoming date that falls on your available days.
-                      For daily subscriptions, students book directly from your profile — no slot
-                      needed.
-                    </p>
+          {tab === 'availability' && (() => {
+            const allSlots = (slots as AvailabilitySlot[]) ?? [];
+            const summaryDays = Array.from(selectedDays).sort().map((d) => DAY_FULL[d]).join(', ');
+            const startLabel = TIME_OPTIONS.find((o) => o.value === slotStart)?.label ?? slotStart;
+            const endLabel = TIME_OPTIONS.find((o) => o.value === slotEnd)?.label ?? slotEnd;
+
+            const slotLabel = (slot: AvailabilitySlot) => {
+              if (slot.dayOfWeek != null) return `Every ${DAY_FULL[slot.dayOfWeek]}`;
+              if (slot.date) return `Once on ${new Date(slot.date).toLocaleDateString()}`;
+              if (slot.startDate && slot.endDate)
+                return `${new Date(slot.startDate).toLocaleDateString()} → ${new Date(slot.endDate).toLocaleDateString()}`;
+              return 'Slot';
+            };
+            const slotTypeBadge = (slot: AvailabilitySlot) => {
+              if (slot.dayOfWeek != null) return { label: 'Weekly', cls: 'bg-[#e8f0fe] text-[#1a73e8]' };
+              if (slot.date) return { label: 'One-time', cls: 'bg-[#fff8e1] text-[#f09300]' };
+              return { label: 'Daily range', cls: 'bg-[#e6f4ea] text-[#1e8e3e]' };
+            };
+
+            const openEdit = (slot: AvailabilitySlot) => {
+              setEditingSlotId(slot.id);
+              setEditStart(slot.startTime ?? '09:00');
+              setEditEnd(slot.endTime ?? '10:00');
+              setEditDuration(slot.slotDurationMins);
+              setEditDayOfWeek(slot.dayOfWeek ?? 0);
+              setEditDate(slot.date ? slot.date.slice(0, 16) : '');
+              setEditStartDate(slot.startDate ? slot.startDate.slice(0, 10) : '');
+              setEditEndDate(slot.endDate ? slot.endDate.slice(0, 10) : '');
+            };
+
+            const closeEdit = () => setEditingSlotId(null);
+
+            const saveEdit = async (slot: AvailabilitySlot) => {
+              setEditSaving(true);
+              try {
+                const dto: Record<string, unknown> = {
+                  startTime: editStart,
+                  endTime: editEnd,
+                  slotDurationMins: editDuration,
+                };
+                if (slot.dayOfWeek != null) dto.dayOfWeek = editDayOfWeek;
+                if (slot.date) dto.date = new Date(editDate).toISOString();
+                if (slot.startDate) dto.startDate = new Date(editStartDate).toISOString();
+                if (slot.endDate) dto.endDate = new Date(editEndDate).toISOString();
+                await updateSlot.mutateAsync({ slotId: slot.id, dto: dto as Parameters<typeof updateSlot.mutateAsync>[0]['dto'] });
+                closeEdit();
+              } finally {
+                setEditSaving(false);
+              }
+            };
+
+            return (
+              <div className="space-y-4">
+                {/* Info banner */}
+                <div className="bg-[#e8f0fe] rounded-xl p-4 border border-[#c5d8fd]">
+                  <p className="font-semibold text-[#1a73e8] text-sm mb-1">How your availability works</p>
+                  <p className="text-xs text-[#3c4043] leading-relaxed">
+                    Set the windows when students can book appointments with you. Weekly slots recur
+                    every week; one-time slots are for a specific date; daily-range slots repeat each
+                    day between two dates.
+                  </p>
+                </div>
+
+                {/* Slot list */}
+                <section className="border border-[#e8eaed] rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-[#e8eaed] bg-[#f8f9fa]">
+                    <h2 className="text-sm font-semibold text-[#202124] flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#1a73e8]" />
+                      Your slots{allSlots.length > 0 && <span className="ml-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#e8f0fe] text-[#1a73e8]">{allSlots.length}</span>}
+                    </h2>
+                    {!showSlotForm && (
+                      <button onClick={() => { setShowSlotForm(true); setSlotError(''); }}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:bg-[#e8f0fe] px-3 py-1.5 rounded-full transition-colors border border-[#c5d8fd]">
+                        <Plus className="w-3.5 h-3.5" /> Add slot
+                      </button>
+                    )}
                   </div>
 
-                  {/* ── Weekly schedule grid ── */}
-                  <section className="border border-[#e8eaed] rounded-xl overflow-hidden">
-                    <div className="flex items-center justify-between px-5 py-3 border-b border-[#e8eaed] bg-[#f8f9fa]">
-                      <h2 className="text-sm font-semibold text-[#202124] flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-[#1a73e8]" /> Weekly schedule
-                      </h2>
-                      {!showSlotForm && (
-                        <button
-                          onClick={() => {
-                            setShowSlotForm(true);
-                            setSlotError('');
-                          }}
-                          className="flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:bg-[#e8f0fe] px-3 py-1.5 rounded-full transition-colors border border-[#c5d8fd]"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Add time slot
-                        </button>
-                      )}
+                  {allSlots.length === 0 ? (
+                    <div className="text-center py-10 px-4">
+                      <div className="w-12 h-12 rounded-full bg-[#f1f3f4] flex items-center justify-center mx-auto mb-3">
+                        <Calendar className="w-6 h-6 text-[#9aa0a6]" />
+                      </div>
+                      <p className="text-sm font-medium text-[#202124]">No slots yet</p>
+                      <p className="text-xs text-[#9aa0a6] mt-1">Add your first time slot to start accepting bookings.</p>
                     </div>
-
-                    {/* 7-column day grid */}
-                    <div
-                      className="grid grid-cols-7 divide-x divide-[#f1f3f4]"
-                      style={{ minHeight: 120 }}
-                    >
-                      {DAY_PILLS.map((abbr, i) => {
-                        const daySlots = slotsByDay[i];
+                  ) : (
+                    <div className="divide-y divide-[#f1f3f4]">
+                      {allSlots.map((slot) => {
+                        const badge = slotTypeBadge(slot);
+                        const isEditing = editingSlotId === slot.id;
                         return (
-                          <div key={i} className="p-2 flex flex-col items-center">
-                            <p
-                              className={`text-[11px] font-bold mb-2 ${daySlots.length ? 'text-[#1a73e8]' : 'text-[#9aa0a6]'}`}
-                            >
-                              {abbr}
-                            </p>
-                            {daySlots.length === 0 ? (
-                              <p className="text-[10px] text-[#e8eaed] mt-3">—</p>
-                            ) : (
-                              daySlots.map((slot) => (
-                                <div
-                                  key={slot.id}
-                                  className="w-full mb-1.5 bg-[#e8f0fe] rounded-lg p-1.5 relative group text-center"
+                          <div key={slot.id}>
+                            {/* ── Slot row ── */}
+                            <div className={`flex items-center justify-between gap-3 px-5 py-4 ${isEditing ? 'bg-[#f8f9fa]' : 'hover:bg-[#fafafa]'} transition-colors`}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${badge.cls}`}>{badge.label}</span>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-[#202124] truncate">{slotLabel(slot)}</p>
+                                  <p className="text-xs text-[#5f6368] mt-0.5">
+                                    {slot.startTime} – {slot.endTime} · {DURATIONS.find((d) => d.mins === slot.slotDurationMins)?.label ?? `${slot.slotDurationMins}m`}
+                                    {!slot.isActive && <span className="ml-2 text-[#d93025]">Inactive</span>}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <button
+                                  onClick={() => isEditing ? closeEdit() : openEdit(slot)}
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isEditing ? 'bg-[#e8f0fe] text-[#1a73e8]' : 'text-[#5f6368] hover:bg-[#e8f0fe] hover:text-[#1a73e8]'}`}
+                                  title={isEditing ? 'Cancel edit' : 'Edit slot'}
                                 >
-                                  <p className="text-[10px] font-semibold text-[#1a73e8] leading-tight">
-                                    {slot.startTime}
-                                  </p>
-                                  <p className="text-[10px] text-[#1a73e8] leading-tight">
-                                    {slot.endTime}
-                                  </p>
-                                  <p className="text-[9px] text-[#5f6368] mt-0.5">
-                                    {DURATIONS.find((d) => d.mins === slot.slotDurationMins)
-                                      ?.label ?? `${slot.slotDurationMins}m`}
-                                  </p>
-                                  <button
-                                    onClick={() => deleteSlot.mutate(slot.id)}
-                                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white border border-[#e8eaed] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#fce8e6] hover:border-[#f5c6c2]"
-                                  >
-                                    <X className="w-2.5 h-2.5 text-[#d93025]" />
+                                  {isEditing ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+                                </button>
+                                <button
+                                  onClick={() => deleteSlot.mutate(slot.id)}
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#5f6368] hover:bg-[#fce8e6] hover:text-[#d93025] transition-colors"
+                                  title="Delete slot"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* ── Inline edit form ── */}
+                            {isEditing && (
+                              <div className="px-5 pb-5 space-y-4 bg-[#f8f9fa] border-t border-[#e8eaed]">
+                                <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide pt-4">Edit slot</p>
+
+                                {/* Day picker — weekly only */}
+                                {slot.dayOfWeek != null && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-[#5f6368] mb-2">Day of week</p>
+                                    <div className="flex gap-2 flex-wrap">
+                                      {DAY_PILLS.map((abbr, i) => (
+                                        <button key={i} type="button" onClick={() => setEditDayOfWeek(i)}
+                                          className={`w-9 h-9 rounded-full text-xs font-bold transition-all ${editDayOfWeek === i ? 'bg-[#1a73e8] text-white ring-2 ring-[#1a73e8]/20' : 'bg-[#f1f3f4] text-[#5f6368] hover:bg-[#e8eaed]'}`}>
+                                          {abbr}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Date — one-time only */}
+                                {slot.date && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-[#5f6368] mb-2">Date & time</p>
+                                    <input type="datetime-local" value={editDate} onChange={(e) => setEditDate(e.target.value)}
+                                      className="border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] w-full" />
+                                  </div>
+                                )}
+
+                                {/* Date range — daily range only */}
+                                {slot.startDate && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-[#5f6368] mb-2">Date range</p>
+                                    <div className="flex gap-2">
+                                      <input type="date" value={editStartDate} onChange={(e) => setEditStartDate(e.target.value)}
+                                        className="border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8]" />
+                                      <input type="date" value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)}
+                                        className="border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8]" />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Start / End time */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Start time</label>
+                                    <select value={editStart}
+                                      onChange={(e) => { setEditStart(e.target.value); if (e.target.value >= editEnd) setEditEnd(TIME_OPTIONS.find((o) => o.value > e.target.value)?.value ?? '23:30'); }}
+                                      className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
+                                      {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">End time</label>
+                                    <select value={editEnd} onChange={(e) => setEditEnd(e.target.value)}
+                                      className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
+                                      {TIME_OPTIONS.filter((o) => o.value > editStart).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    </select>
+                                  </div>
+                                </div>
+
+                                {/* Duration */}
+                                <div>
+                                  <p className="text-xs font-semibold text-[#5f6368] mb-2">Session duration</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {DURATIONS.map((d) => (
+                                      <button key={d.mins} type="button" onClick={() => setEditDuration(d.mins)}
+                                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${editDuration === d.mins ? 'border-[#1a73e8] bg-[#e8f0fe] text-[#1a73e8]' : 'border-[#dadce0] text-[#5f6368] hover:border-[#aaa]'}`}>
+                                        {d.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#e8eaed]">
+                                  <button type="button" onClick={closeEdit}
+                                    className="px-4 py-2 rounded-full text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors">
+                                    Cancel
+                                  </button>
+                                  <button type="button" onClick={() => saveEdit(slot)} disabled={editSaving}
+                                    className="flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-semibold bg-[#1a73e8] text-white hover:bg-[#1557b0] disabled:opacity-60 transition-colors shadow-sm">
+                                    {editSaving ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</> : <><Save className="w-3.5 h-3.5" /> Save changes</>}
                                   </button>
                                 </div>
-                              ))
+                              </div>
                             )}
                           </div>
                         );
                       })}
                     </div>
+                  )}
+                </section>
 
-                    {allSlots.length === 0 && (
-                      <div className="text-center py-6 border-t border-[#f1f3f4]">
-                        <p className="text-xs text-[#9aa0a6]">
-                          No availability set. Add a time slot to get started.
-                        </p>
-                      </div>
-                    )}
-
-                    {(oneTimeSlots.length > 0 || dailyRangeSlots.length > 0) && (
-                      <div className="border-t border-[#f1f3f4] py-4 px-4">
-                        <h3 className="text-sm font-semibold text-[#202124] mb-3">
-                          Other availability
-                        </h3>
-                        <div className="space-y-3">
-                          {oneTimeSlots.map((slot) => {
-                            const start = slot.startTime ?? formatLocalTime(slot.date!);
-                            const end = slot.endTime ?? addMinutes(start, slot.slotDurationMins);
-                            return (
-                              <div
-                                key={slot.id}
-                                className="flex items-center justify-between gap-3 bg-[#f8f9fa] rounded-lg p-3 border border-[#e8eaed]"
-                              >
-                                <div>
-                                  <p className="text-sm font-semibold text-[#202124]">
-                                    One-time slot
-                                  </p>
-                                  <p className="text-xs text-[#5f6368]">
-                                    {new Date(slot.date!).toLocaleDateString()}
-                                  </p>
-                                </div>
-                                <div className="text-right text-xs text-[#5f6368]">
-                                  <div>
-                                    {start} – {end}
-                                  </div>
-                                  <div>
-                                    {DURATIONS.find((d) => d.mins === slot.slotDurationMins)
-                                      ?.label ?? `${slot.slotDurationMins}m`}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {dailyRangeSlots.map((slot) => (
-                            <div
-                              key={slot.id}
-                              className="flex items-center justify-between gap-3 bg-[#f8f9fa] rounded-lg p-3 border border-[#e8eaed]"
-                            >
-                              <div>
-                                <p className="text-sm font-semibold text-[#202124]">Daily range</p>
-                                <p className="text-xs text-[#5f6368]">
-                                  {new Date(slot.startDate!).toLocaleDateString()} →{' '}
-                                  {new Date(slot.endDate!).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <div className="text-right text-xs text-[#5f6368]">
-                                <div>
-                                  {slot.startTime} – {slot.endTime}
-                                </div>
-                                <div>
-                                  {DURATIONS.find((d) => d.mins === slot.slotDurationMins)?.label ??
-                                    `${slot.slotDurationMins}m`}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </section>
-
-                  {/* ── Outlook-style "Add time slot" panel ── */}
-                  {showSlotForm && (
-                    <section className="border-2 border-[#1a73e8] rounded-xl overflow-hidden shadow-sm">
-                      {/* Header */}
-                      <div className="flex items-center justify-between px-5 py-3 bg-[#e8f0fe] border-b border-[#c5d8fd]">
-                        <h2 className="text-sm font-semibold text-[#1a73e8] flex items-center gap-2">
-                          <RefreshCw className="w-4 h-4" /> New recurring availability
-                        </h2>
-                        <button
-                          onClick={() => {
-                            setShowSlotForm(false);
-                            setSelectedDays(new Set());
-                            setOneTimeDate('');
-                            setRangeStartDate('');
-                            setSlotError('');
-                          }}
-                          className="p-1 rounded-full hover:bg-white/60 transition-colors"
-                        >
-                          <X className="w-4 h-4 text-[#1a73e8]" />
-                        </button>
+                {/* ── Add new slot form ── */}
+                {showSlotForm && (
+                  <section className="border-2 border-[#1a73e8] rounded-xl overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between px-5 py-3 bg-[#e8f0fe] border-b border-[#c5d8fd]">
+                      <h2 className="text-sm font-semibold text-[#1a73e8] flex items-center gap-2">
+                        <Plus className="w-4 h-4" /> Add new slot
+                      </h2>
+                      <button onClick={() => { setShowSlotForm(false); setSelectedDays(new Set()); setOneTimeDate(''); setRangeStartDate(''); setSlotError(''); }}
+                        className="p-1 rounded-full hover:bg-white/60 transition-colors">
+                        <X className="w-4 h-4 text-[#1a73e8]" />
+                      </button>
+                    </div>
+                    <div className="p-5 space-y-5">
+                      {/* Recurrence type */}
+                      <div className="flex items-center gap-3 py-2 px-3 bg-[#f8f9fa] rounded-lg border border-[#e8eaed]">
+                        <RefreshCw className="w-3.5 h-3.5 text-[#5f6368]" />
+                        <label className="text-sm text-[#5f6368]">Type</label>
+                        <select value={slotMode} onChange={(e) => setSlotMode(e.target.value as typeof slotMode)}
+                          className="border border-[#dadce0] rounded px-2 py-1 text-sm">
+                          <option value="WEEKLY">Weekly (repeats every week)</option>
+                          <option value="ONE_TIME">One-time (specific date)</option>
+                          <option value="DAILY_RANGE">Daily range (between two dates)</option>
+                        </select>
                       </div>
 
-                      <div className="p-5 space-y-5">
-                        {/* Recurrence pattern label */}
-                        <div className="flex items-center gap-2 py-2 px-3 bg-[#f8f9fa] rounded-lg border border-[#e8eaed]">
-                          <RefreshCw className="w-3.5 h-3.5 text-[#5f6368]" />
-                          <div className="flex items-center gap-3">
-                            <label className="text-sm text-[#5f6368] mr-2">Recurrence type</label>
-                            <select
-                              value={slotMode}
-                              onChange={(e) => setSlotMode(e.target.value as any)}
-                              className="border border-[#dadce0] rounded px-2 py-1 text-sm"
-                            >
-                              <option value="WEEKLY">Weekly (recurring weekly)</option>
-                              <option value="ONE_TIME">One-time (specific date/time)</option>
-                              <option value="DAILY_RANGE">
-                                Daily range (every day between dates)
-                              </option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Day pills — "Repeat on" */}
-                        {slotMode === 'WEEKLY' && (
-                          <div>
-                            <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">
-                              Repeat on
-                            </p>
-                            <div className="flex gap-2">
-                              {DAY_PILLS.map((abbr, i) => (
-                                <button
-                                  key={i}
-                                  type="button"
-                                  onClick={() => toggleDay(i)}
-                                  className={`w-10 h-10 rounded-full text-xs font-bold transition-all ${
-                                    selectedDays.has(i)
-                                      ? 'bg-[#1a73e8] text-white shadow-sm ring-2 ring-[#1a73e8]/20'
-                                      : 'bg-[#f1f3f4] text-[#5f6368] hover:bg-[#e8eaed]'
-                                  }`}
-                                >
-                                  {abbr}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {slotMode === 'ONE_TIME' && (
-                          <div>
-                            <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">
-                              One-time date & time
-                            </p>
-                            <input
-                              type="datetime-local"
-                              value={oneTimeDate}
-                              onChange={(e) => setOneTimeDate(e.target.value)}
-                              className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none"
-                            />
-                          </div>
-                        )}
-
-                        {slotMode === 'DAILY_RANGE' && (
-                          <div>
-                            <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">
-                              Range (start & end dates)
-                            </p>
-                            <div className="flex gap-2">
-                              <input
-                                type="date"
-                                value={rangeStartDate}
-                                onChange={(e) => setRangeStartDate(e.target.value)}
-                                className="border border-[#dadce0] rounded-lg px-3 py-2 text-sm"
-                              />
-                              <input
-                                type="date"
-                                value={rangeEndDate}
-                                onChange={(e) => setRangeEndDate(e.target.value)}
-                                className="border border-[#dadce0] rounded-lg px-3 py-2 text-sm"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Start / End time — side by side like Outlook */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">
-                              Start time
-                            </label>
-                            <select
-                              value={slotStart}
-                              onChange={(e) => {
-                                setSlotStart(e.target.value);
-                                if (e.target.value >= slotEnd)
-                                  setSlotEnd(
-                                    TIME_OPTIONS.find((o) => o.value > e.target.value)?.value ??
-                                      '23:30',
-                                  );
-                              }}
-                              className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm text-[#202124] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] bg-white transition-colors"
-                            >
-                              {TIME_OPTIONS.map((o) => (
-                                <option key={o.value} value={o.value}>
-                                  {o.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">
-                              End time
-                            </label>
-                            <select
-                              value={slotEnd}
-                              onChange={(e) => setSlotEnd(e.target.value)}
-                              className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm text-[#202124] outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8] bg-white transition-colors"
-                            >
-                              {TIME_OPTIONS.filter((o) => o.value > slotStart).map((o) => (
-                                <option key={o.value} value={o.value}>
-                                  {o.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Session duration */}
+                      {slotMode === 'WEEKLY' && (
                         <div>
-                          <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">
-                            Session duration
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {DURATIONS.map((d) => (
-                              <button
-                                key={d.mins}
-                                type="button"
-                                onClick={() => setSlotDuration(d.mins)}
-                                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                                  slotDuration === d.mins
-                                    ? 'border-[#1a73e8] bg-[#e8f0fe] text-[#1a73e8]'
-                                    : 'border-[#dadce0] text-[#5f6368] hover:border-[#aaa]'
-                                }`}
-                              >
-                                {d.label}
+                          <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">Repeat on</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {DAY_PILLS.map((abbr, i) => (
+                              <button key={i} type="button" onClick={() => toggleDay(i)}
+                                className={`w-10 h-10 rounded-full text-xs font-bold transition-all ${selectedDays.has(i) ? 'bg-[#1a73e8] text-white ring-2 ring-[#1a73e8]/20' : 'bg-[#f1f3f4] text-[#5f6368] hover:bg-[#e8eaed]'}`}>
+                                {abbr}
                               </button>
                             ))}
                           </div>
                         </div>
-
-                        {/* Live summary */}
-                        {selectedDays.size > 0 && (
-                          <div className="px-4 py-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl text-sm text-[#166534]">
-                            <p className="font-medium mb-0.5">Summary</p>
-                            <p className="text-xs">
-                              Every <strong>{summaryDays}</strong> · {startLabel} – {endLabel} ·{' '}
-                              {DURATIONS.find((d) => d.mins === slotDuration)?.label}
-                            </p>
-                            <p className="text-xs mt-1 text-[#14532d]">
-                              Creates {selectedDays.size} availability block
-                              {selectedDays.size !== 1 ? 's' : ''}
-                            </p>
+                      )}
+                      {slotMode === 'ONE_TIME' && (
+                        <div>
+                          <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">Date & time</p>
+                          <input type="datetime-local" value={oneTimeDate} onChange={(e) => setOneTimeDate(e.target.value)}
+                            className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8]" />
+                        </div>
+                      )}
+                      {slotMode === 'DAILY_RANGE' && (
+                        <div>
+                          <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">Date range</p>
+                          <div className="flex gap-2">
+                            <input type="date" value={rangeStartDate} onChange={(e) => setRangeStartDate(e.target.value)}
+                              className="border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8]" />
+                            <input type="date" value={rangeEndDate} onChange={(e) => setRangeEndDate(e.target.value)}
+                              className="border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8]" />
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {slotError && (
-                          <p className="text-xs text-[#d93025] bg-[#fce8e6] px-3 py-2 rounded-lg border border-[#f5c6c2]">
-                            {slotError}
-                          </p>
-                        )}
-
-                        {/* Actions */}
-                        <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#e8eaed]">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowSlotForm(false);
-                              setSelectedDays(new Set());
-                              setOneTimeDate('');
-                              setRangeStartDate('');
-                              setSlotError('');
-                            }}
-                            className="px-5 py-2 rounded-full text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleSaveSlots}
-                            disabled={!canSaveSlots()}
-                            className="px-6 py-2 rounded-full text-sm font-medium bg-[#1a73e8] text-white hover:bg-[#1557b0] disabled:opacity-60 transition-colors shadow-sm"
-                          >
-                            {slotSaving ? 'Saving…' : 'Save availability'}
-                          </button>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">Start time</label>
+                          <select value={slotStart}
+                            onChange={(e) => { setSlotStart(e.target.value); if (e.target.value >= slotEnd) setSlotEnd(TIME_OPTIONS.find((o) => o.value > e.target.value)?.value ?? '23:30'); }}
+                            className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
+                            {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">End time</label>
+                          <select value={slotEnd} onChange={(e) => setSlotEnd(e.target.value)}
+                            className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
+                            {TIME_OPTIONS.filter((o) => o.value > slotStart).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
                         </div>
                       </div>
-                    </section>
-                  )}
-                </div>
-              );
-            })()}
+
+                      <div>
+                        <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-2">Session duration</p>
+                        <div className="flex flex-wrap gap-2">
+                          {DURATIONS.map((d) => (
+                            <button key={d.mins} type="button" onClick={() => setSlotDuration(d.mins)}
+                              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${slotDuration === d.mins ? 'border-[#1a73e8] bg-[#e8f0fe] text-[#1a73e8]' : 'border-[#dadce0] text-[#5f6368] hover:border-[#aaa]'}`}>
+                              {d.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {selectedDays.size > 0 && slotMode === 'WEEKLY' && (
+                        <div className="px-4 py-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl text-sm text-[#166534]">
+                          <p className="font-medium mb-0.5">Summary</p>
+                          <p className="text-xs">Every <strong>{summaryDays}</strong> · {startLabel} – {endLabel} · {DURATIONS.find((d) => d.mins === slotDuration)?.label}</p>
+                          <p className="text-xs mt-1 text-[#14532d]">Creates {selectedDays.size} slot{selectedDays.size !== 1 ? 's' : ''}</p>
+                        </div>
+                      )}
+
+                      {slotError && (
+                        <p className="text-xs text-[#d93025] bg-[#fce8e6] px-3 py-2 rounded-lg border border-[#f5c6c2]">{slotError}</p>
+                      )}
+
+                      <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#e8eaed]">
+                        <button type="button"
+                          onClick={() => { setShowSlotForm(false); setSelectedDays(new Set()); setOneTimeDate(''); setRangeStartDate(''); setSlotError(''); }}
+                          className="px-5 py-2 rounded-full text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors">
+                          Cancel
+                        </button>
+                        <button type="button" onClick={handleSaveSlots} disabled={!canSaveSlots()}
+                          className="px-6 py-2 rounded-full text-sm font-medium bg-[#1a73e8] text-white hover:bg-[#1557b0] disabled:opacity-60 transition-colors shadow-sm">
+                          {slotSaving ? 'Saving…' : 'Save slot'}
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Bookings tab */}
           {tab === 'bookings' && (
