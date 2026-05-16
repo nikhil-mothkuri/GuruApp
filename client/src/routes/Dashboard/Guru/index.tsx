@@ -84,6 +84,48 @@ const computeDurationMins = (start: string, end: string) => {
   return (eh * 60 + em) - (sh * 60 + sm);
 };
 
+type SlotLike = {
+  id?: string;
+  dayOfWeek?: number | null;
+  date?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+};
+
+const slotTimesOverlap = (s1: string, e1: string, s2: string, e2: string) => s1 < e2 && s2 < e1;
+
+const findSlotOverlap = (
+  existing: SlotLike[],
+  incoming: SlotLike & { mode?: string },
+  excludeId?: string,
+): SlotLike | undefined => {
+  const s1 = incoming.startTime;
+  const e1 = incoming.endTime;
+  if (!s1 || !e1) return undefined;
+  const mode = incoming.mode ?? (incoming.dayOfWeek != null ? 'WEEKLY' : incoming.date ? 'ONE_TIME' : 'DAILY_RANGE');
+
+  return existing.find((slot) => {
+    if (slot.id === excludeId) return false;
+    const s2 = slot.startTime;
+    const e2 = slot.endTime;
+    if (!s2 || !e2 || !slotTimesOverlap(s1, e1, s2, e2)) return false;
+
+    if (mode === 'WEEKLY' && incoming.dayOfWeek != null && slot.dayOfWeek != null)
+      return slot.dayOfWeek === incoming.dayOfWeek;
+    if (mode === 'ONE_TIME' && incoming.date && slot.date)
+      return incoming.date.slice(0, 10) === slot.date.slice(0, 10);
+    if (mode === 'ONE_TIME' && incoming.date && slot.dayOfWeek != null)
+      return new Date(incoming.date).getDay() === slot.dayOfWeek;
+    if (mode === 'WEEKLY' && incoming.dayOfWeek != null && slot.date)
+      return new Date(slot.date).getDay() === incoming.dayOfWeek;
+    if (mode === 'DAILY_RANGE' && incoming.startDate && incoming.endDate && slot.startDate && slot.endDate)
+      return incoming.startDate < slot.endDate! && slot.startDate < incoming.endDate!;
+    return false;
+  });
+};
+
 const formatLocalTime = (dateTime: string | Date) => {
   const date = new Date(dateTime);
   const hours = String(date.getHours()).padStart(2, '0');
@@ -237,6 +279,33 @@ export default function GuruDashboard() {
     setSlotSaving(true);
     setSlotError('');
     try {
+      // Frontend overlap guard (backend also checks)
+      const existingSlots = (slots as SlotLike[] | undefined) ?? [];
+      if (slotMode === 'WEEKLY') {
+        for (const day of Array.from(selectedDays)) {
+          const conflict = findSlotOverlap(existingSlots, { mode: 'WEEKLY', dayOfWeek: day, startTime: slotStart, endTime: slotEnd });
+          if (conflict) {
+            setSlotError(`Overlaps with an existing slot on ${DAY_FULL[day]} (${conflict.startTime}–${conflict.endTime}).`);
+            setSlotSaving(false);
+            return;
+          }
+        }
+      } else if (slotMode === 'ONE_TIME') {
+        const conflict = findSlotOverlap(existingSlots, { mode: 'ONE_TIME', date: oneTimeDate, startTime: slotStart, endTime: slotEnd });
+        if (conflict) {
+          setSlotError(`Overlaps with an existing slot (${conflict.startTime}–${conflict.endTime}).`);
+          setSlotSaving(false);
+          return;
+        }
+      } else if (slotMode === 'DAILY_RANGE') {
+        const conflict = findSlotOverlap(existingSlots, { mode: 'DAILY_RANGE', startDate: rangeStartDate, endDate: rangeEndDate, startTime: slotStart, endTime: slotEnd });
+        if (conflict) {
+          setSlotError(`Overlaps with an existing slot (${conflict.startTime}–${conflict.endTime}).`);
+          setSlotSaving(false);
+          return;
+        }
+      }
+
       if (slotMode === 'WEEKLY') {
         if (selectedDays.size === 0) {
           setSlotError('Select at least one day.');
@@ -778,6 +847,25 @@ export default function GuruDashboard() {
             const saveEdit = async (slot: AvailabilitySlot) => {
               setEditSaving(true);
               try {
+                const incoming: SlotLike & { mode?: string } = {
+                  mode: slot.dayOfWeek != null ? 'WEEKLY' : slot.date ? 'ONE_TIME' : 'DAILY_RANGE',
+                  dayOfWeek: slot.dayOfWeek != null ? editDayOfWeek : undefined,
+                  date: slot.date ? editDate : undefined,
+                  startDate: slot.startDate ? editStartDate : undefined,
+                  endDate: slot.endDate ? editEndDate : undefined,
+                  startTime: editStart,
+                  endTime: editEnd,
+                };
+                const conflict = findSlotOverlap(
+                  (slots as SlotLike[] | undefined) ?? [],
+                  incoming,
+                  slot.id,
+                );
+                if (conflict) {
+                  setSlotError(`Overlaps with an existing slot (${conflict.startTime}–${conflict.endTime}).`);
+                  return;
+                }
+                setSlotError('');
                 const dto: Record<string, unknown> = {
                   startTime: editStart,
                   endTime: editEnd,
