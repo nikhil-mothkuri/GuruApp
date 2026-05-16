@@ -231,12 +231,13 @@ export default function GuruDashboard() {
           setSlotSaving(false);
           return;
         }
+        const computedEnd = addMinutes(slotStart, slotDuration);
         for (const day of Array.from(selectedDays).sort()) {
           await createSlot.mutateAsync({
             mode: 'WEEKLY',
             dayOfWeek: day,
             startTime: slotStart,
-            endTime: slotEnd,
+            endTime: computedEnd,
             slotDurationMins: slotDuration,
           });
         }
@@ -252,7 +253,7 @@ export default function GuruDashboard() {
           mode: 'ONE_TIME',
           date: iso,
           startTime: slotStart,
-          endTime: slotEnd,
+          endTime: addMinutes(slotStart, slotDuration),
           slotDurationMins: slotDuration,
         });
         setOneTimeDate('');
@@ -269,7 +270,7 @@ export default function GuruDashboard() {
           startDate: startIso,
           endDate: endIso,
           startTime: slotStart,
-          endTime: slotEnd,
+          endTime: addMinutes(slotStart, slotDuration),
           slotDurationMins: slotDuration,
         });
         setRangeStartDate('');
@@ -291,8 +292,7 @@ export default function GuruDashboard() {
     if (slotSaving) return false;
     if (slotMode === 'WEEKLY') return selectedDays.size > 0;
     if (slotMode === 'ONE_TIME') return !!oneTimeDate;
-    if (slotMode === 'DAILY_RANGE')
-      return !!rangeStartDate && !!rangeEndDate && slotStart < slotEnd;
+    if (slotMode === 'DAILY_RANGE') return !!rangeStartDate && !!rangeEndDate;
     return false;
   };
 
@@ -769,7 +769,7 @@ export default function GuruDashboard() {
               try {
                 const dto: Record<string, unknown> = {
                   startTime: editStart,
-                  endTime: editEnd,
+                  endTime: addMinutes(editStart, editDuration),
                   slotDurationMins: editDuration,
                 };
                 if (slot.dayOfWeek != null) dto.dayOfWeek = editDayOfWeek;
@@ -897,22 +897,20 @@ export default function GuruDashboard() {
                                   </div>
                                 )}
 
-                                {/* Start / End time */}
+                                {/* Start time + computed end */}
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Start time</label>
-                                    <select value={editStart}
-                                      onChange={(e) => { setEditStart(e.target.value); if (e.target.value >= editEnd) setEditEnd(TIME_OPTIONS.find((o) => o.value > e.target.value)?.value ?? '23:30'); }}
+                                    <select value={editStart} onChange={(e) => setEditStart(e.target.value)}
                                       className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
                                       {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                     </select>
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">End time</label>
-                                    <select value={editEnd} onChange={(e) => setEditEnd(e.target.value)}
-                                      className="w-full border border-[#dadce0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a73e8] bg-white">
-                                      {TIME_OPTIONS.filter((o) => o.value > editStart).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                    </select>
+                                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Ends at</label>
+                                    <div className="w-full border border-[#e8eaed] rounded-lg px-3 py-2 text-sm text-[#5f6368] bg-[#f8f9fa]">
+                                      {TIME_OPTIONS.find((o) => o.value === addMinutes(editStart, editDuration))?.label ?? addMinutes(editStart, editDuration)}
+                                    </div>
                                   </div>
                                 </div>
 
@@ -1008,18 +1006,16 @@ export default function GuruDashboard() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">Start time</label>
-                          <select value={slotStart}
-                            onChange={(e) => { setSlotStart(e.target.value); if (e.target.value >= slotEnd) setSlotEnd(TIME_OPTIONS.find((o) => o.value > e.target.value)?.value ?? '23:30'); }}
+                          <select value={slotStart} onChange={(e) => setSlotStart(e.target.value)}
                             className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
                             {TIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">End time</label>
-                          <select value={slotEnd} onChange={(e) => setSlotEnd(e.target.value)}
-                            className="w-full border border-[#dadce0] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1a73e8] bg-white">
-                            {TIME_OPTIONS.filter((o) => o.value > slotStart).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
+                          <label className="block text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1.5">Ends at</label>
+                          <div className="w-full border border-[#e8eaed] rounded-lg px-3 py-2.5 text-sm text-[#5f6368] bg-[#f8f9fa]">
+                            {TIME_OPTIONS.find((o) => o.value === addMinutes(slotStart, slotDuration))?.label ?? addMinutes(slotStart, slotDuration)}
+                          </div>
                         </div>
                       </div>
 
